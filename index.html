@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>AXION KEY</title>
+<style>
+:root{color-scheme:dark;--bg:#000;--s1:#08090c;--s2:#0f1218;--line:#1b2230;--tx:#eef2f8;--mu:#7d8aa0;--ac:#2f8cff;--ac2:#78b8ff;--ok:#3ddc97;--no:#ff5d6c;
+--f:'Hiragino Sans','Yu Gothic','Noto Sans JP',system-ui,sans-serif;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--tx);font-family:var(--f);font-size:15px;line-height:1.6;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+button:focus-visible,input:focus-visible{outline:2px solid var(--ac2);outline-offset:2px}
+.app{max-width:960px;margin:0 auto;padding:18px 18px 96px}
+header{display:flex;align-items:center;justify-content:space-between;padding:6px 2px 18px}
+.logo{font-weight:700;font-size:19px;letter-spacing:.14em}.logo i{font-style:normal;color:var(--ac)}
+.sim{font-size:12px;color:var(--ac2);border:1px solid #17365e;background:#06101f;padding:3px 10px;border-radius:99px}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:5;display:flex;justify-content:center;gap:4px;padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px));background:rgba(0,0,0,.88);backdrop-filter:blur(14px);border-top:1px solid var(--line)}
+nav button{flex:1;max-width:200px;padding:10px 4px;border-radius:12px;color:var(--mu);font-size:13px;font-weight:500}
+nav button[aria-selected=true]{color:var(--tx);background:var(--s2);box-shadow:inset 0 -2px 0 var(--ac)}
+.view{display:none}.view.on{display:block}
+.grid{display:grid;gap:18px}
+@media(min-width:760px){.grid.two{grid-template-columns:1.1fr 1fr}}
+.panel{background:linear-gradient(180deg,var(--s2),var(--s1));border:1px solid var(--line);border-radius:22px;padding:22px}
+h2{font-size:17px;margin:0 0 14px;font-weight:700}
+.muted{color:var(--mu);font-size:13px}
+.dial{position:relative;width:min(78vw,300px);aspect-ratio:1;margin:8px auto 18px}
+.ring{position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 200deg,#0b1220,var(--ac),#0b1220 60%,#0b1220);transition:.5s}
+.dial.off .ring{background:#161b26}.dial.busy .ring{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.core{position:absolute;inset:7px;border-radius:50%;background:radial-gradient(circle at 35% 25%,#12161f,#030405 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+.core svg{width:64px;height:64px;stroke:var(--ac2);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.dial.off .core svg{stroke:#3a4458}
+.core b{font-size:22px;letter-spacing:.08em}.core span{font-size:12px;color:var(--mu);text-align:center;padding:0 22px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:16px}
+.chip{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:99px;background:var(--s1);border:1px solid var(--line);font-size:13px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--mu);flex:none}.dot.ok{background:var(--ok);box-shadow:0 0 8px var(--ok)}.dot.no{background:var(--no)}.dot.ac{background:var(--ac);box-shadow:0 0 8px var(--ac)}
+.btn{padding:13px 18px;border-radius:14px;font-weight:700;background:var(--ac);color:#00112b;transition:.2s}
+.btn:active{transform:scale(.98)}
+.btn.ghost{background:var(--s1);color:var(--tx);border:1px solid var(--line);font-weight:500}
+.btn.danger{background:#2a1015;color:#ff8c97;border:1px solid #4a1a22}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+.row{display:flex;gap:10px;flex-wrap:wrap}.row>.btn{flex:1;min-width:130px}
+.sw{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border:1px solid var(--line);border-radius:16px;background:var(--s1)}
+.tog{width:52px;height:30px;border-radius:99px;background:#1a202c;position:relative;transition:.25s;flex:none}
+.tog::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#8793a8;transition:.25s}
+.tog[aria-checked=true]{background:var(--ac)}.tog[aria-checked=true]::after{left:25px;background:#fff}
+.qrbox{background:#fff;border-radius:20px;padding:12px;width:fit-content;margin:0 auto 12px;box-shadow:0 0 0 1px #17365e,0 0 40px rgba(47,140,255,.18);line-height:0}
+.qrbox svg{display:block;width:min(64vw,256px);height:auto}
+.timer{height:3px;background:var(--line);border-radius:3px;overflow:hidden;margin:0 auto 10px;max-width:256px}.timer i{display:block;height:100%;background:var(--ac);width:100%}
+.scan{position:relative;border-radius:18px;overflow:hidden;background:#000;border:1px solid var(--line);aspect-ratio:4/3;display:none;margin-bottom:12px}
+.scan.on{display:block}.scan video{width:100%;height:100%;object-fit:cover}
+.scan::after{content:"";position:absolute;inset:18%;border:2px solid var(--ac);border-radius:18px;box-shadow:0 0 0 999px rgba(0,0,0,.45)}
+input[type=text]{width:100%;padding:13px 14px;border-radius:14px;border:1px solid var(--line);background:var(--s1);color:var(--tx);font:inherit;font-size:14px}
+.list{display:grid;gap:10px}
+.dev{display:flex;align-items:center;gap:14px;padding:14px;border:1px solid var(--line);border-radius:16px;background:var(--s1)}
+.ico{width:42px;height:42px;border-radius:12px;background:#0a1626;border:1px solid #17365e;display:grid;place-items:center;flex:none}
+.ico svg{width:22px;height:22px;stroke:var(--ac2);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.dev .m{flex:1;min-width:0}.dev .m b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dev .acts{display:flex;gap:6px}
+.sm{padding:7px 12px;border-radius:10px;font-size:13px;background:var(--s2);border:1px solid var(--line)}.sm.d{color:#ff8c97;border-color:#4a1a22}
+.hist{display:flex;gap:12px;padding:12px 4px;border-bottom:1px solid var(--line)}.hist:last-child{border-bottom:0}
+.hist time{font-size:12px;color:var(--mu);min-width:92px;font-variant-numeric:tabular-nums}
+.empty{padding:26px 8px;text-align:center;color:var(--mu)}
+.veh{display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--line);border-radius:16px;background:var(--s1)}
+.veh .m{flex:1;min-width:0}
+.toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:#0d1a2e;border:1px solid #1d4a84;color:var(--tx);padding:11px 18px;border-radius:14px;opacity:0;pointer-events:none;transition:.3s;z-index:20;max-width:90vw;font-size:14px}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:30;padding:20px}.modal.on{display:flex}
+.modal .box{background:var(--s2);border:1px solid var(--line);border-radius:22px;padding:24px;max-width:360px;width:100%}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header><div class="logo">AXION <i>KEY</i></div><div class="sim">シミュレーション</div></header>
+
+  <section class="view on" id="v-key">
+    <div class="grid two">
+      <div class="panel">
+        <div class="dial" id="dial"><div class="ring"></div>
+          <div class="core"><svg id="lockico" viewBox="0 0 24 24"></svg><b id="lockTxt">施錠中</b><span id="lockSub"></span></div>
+        </div>
+        <div class="chips">
+          <span class="chip"><i class="dot" id="dKey"></i><span id="tKey">キー有効</span></span>
+          <span class="chip"><i class="dot" id="dLock"></i><span id="tLock">施錠</span></span>
+        </div>
+        <div class="row">
+          <button class="btn" id="bLock">施錠</button>
+          <button class="btn ghost" id="bUnlock">解錠</button>
+        </div>
+        <div class="row" style="margin-top:10px"><button class="btn" id="bSummon">車を呼ぶ</button></div>
+        <div id="apBox" style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(125,138,160,.3)">
+          <b>自動駐車</b>
+          <div class="row" style="margin-top:8px"><button class="btn ghost" id="apMDemo">デモ</button><button class="btn ghost" id="apMCam">カメラ</button></div>
+          <div class="row" id="apLotRow" style="margin-top:8px;display:none"><button class="btn ghost" id="apLPerp">駐車場</button><button class="btn ghost" id="apLPara">縦列</button></div>
+          <div class="row" style="margin-top:8px"><button class="btn" id="apPrep">駐車場を開く</button></div>
+          <div id="apSlots" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div>
+          <div id="apGoBox" style="display:none">
+            <div class="row" style="margin-top:10px"><button class="btn ghost" id="apBack">後ろから</button><button class="btn ghost" id="apFront">前から</button></div>
+            <div class="row" style="margin-top:10px"><button class="btn" id="apGo">スタート</button></div>
+          </div>
+          <div class="row" style="margin-top:10px"><button class="btn ghost" id="apStop">中止</button></div>
+          <div class="muted" id="apSt" style="margin-top:10px"></div>
+        </div>
+      </div>
+      <div class="grid" style="align-content:start">
+        <div class="panel">
+          <h2>接続先の車両</h2>
+          <div class="veh"><i class="dot" id="dVeh"></i><div class="m"><b>AXION CORE（index 32）</b><div class="muted" id="tVeh"></div></div><button class="sm" id="bVeh">再接続</button></div>
+          <p class="muted" style="margin:12px 0 0">同じブラウザで index（32）を開いておくと、施錠・解錠が車両の画面に反映されます。</p>
+        </div>
+        <div class="panel">
+          <h2>キーの状態</h2>
+          <div class="sw"><div><b id="swTitle">キーを有効にする</b><div class="muted">無効にすると施錠・解錠できません</div></div>
+            <button class="tog" id="tog" role="switch" aria-checked="true" aria-label="キーの有効・無効"></button></div>
+          <div class="muted" style="margin-top:14px">この端末：<span id="selfName"></span><br>登録端末：<span id="devCount"></span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="v-pair">
+    <div class="grid two">
+      <div class="panel" style="text-align:center">
+        <h2 style="text-align:left">この端末のQRコード</h2>
+        <div class="qrbox" id="qr"></div>
+        <div class="timer"><i id="tbar"></i></div>
+        <div class="muted" id="tleft" style="margin-bottom:14px"></div>
+        <div class="row"><button class="btn ghost" id="bRefresh">QRを更新</button></div>
+        <p class="muted" style="margin-bottom:0">別の端末でAXION KEYを開き、「カメラで読み取る」からこのコードを読み取ってください。</p>
+        <details style="text-align:left;margin-top:12px"><summary class="muted">コードを文字で表示</summary><input type="text" id="codeTxt" readonly aria-label="ペアリングコード" style="margin-top:8px"></details>
+      </div>
+      <div class="panel">
+        <h2>別端末のQRを読み取る</h2>
+        <div class="scan" id="scan"><video id="vid" playsinline muted></video></div>
+        <div class="row" style="margin-bottom:14px">
+          <button class="btn" id="bScan">カメラで読み取る</button>
+          <button class="btn ghost" id="bStop" style="display:none">読み取りを止める</button>
+        </div>
+        <div class="muted" id="scanMsg" style="margin-bottom:16px"></div>
+        <h2>コードを貼り付ける</h2>
+        <div class="row"><input type="text" id="manual" placeholder="AXIONKEY1|…" aria-label="ペアリングコード入力"><button class="btn ghost" id="bManual" style="flex:none">登録</button></div>
+        <h2 style="margin-top:22px">仮想端末で試す</h2>
+        <button class="btn ghost" id="bVirtual" style="width:100%">仮想端末を追加</button>
+      </div>
+    </div>
+
+  <div class="panel" style="margin-top:18px"><h2>ナビと連携（QR）</h2>
+    <p class="muted" style="margin-top:0">ナビでこのQRを1回読み取るだけ。次からは自動でつながります。</p>
+    <div class="row"><button class="btn" id="lkStart">連携QRを出す</button><button class="btn ghost" id="lkReset" style="flex:none">連携を解除</button></div>
+    <input type="text" id="lkUrl" placeholder="ナビのページのURL" aria-label="ナビのページのURL" style="margin-top:12px">
+    <div class="row" style="margin-top:10px"><button class="btn ghost" id="lkCopy">リンクをコピー</button></div>
+    <div class="qrbox" id="lkQr" style="margin:12px auto"></div>
+    <input type="text" id="lkTxt" readonly style="display:none;margin-top:10px" aria-label="連携コード">
+    <div class="muted" id="lkSt" style="margin-top:10px"></div>
+  </div>
+  </section>
+
+  <section class="view" id="v-dev"><div class="panel"><h2>登録端末</h2><div class="list" id="devList"></div></div></section>
+  <section class="view" id="v-his"><div class="panel"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><h2 style="margin:0">操作履歴</h2><button class="sm" id="bClear">履歴を消去</button></div><div id="hisList"></div></div></section>
+</div>
+
+<nav role="tablist">
+  <button role="tab" data-v="key" aria-selected="true">キー</button>
+  <button role="tab" data-v="pair" aria-selected="false">ペアリング</button>
+  <button role="tab" data-v="dev" aria-selected="false">端末</button>
+  <button role="tab" data-v="his" aria-selected="false">履歴</button>
+</nav>
+<div class="toast" id="toast" role="status"></div>
+<div class="modal" id="modal"><div class="box"><h2 id="mTitle"></h2><p class="muted" id="mBody"></p><div class="row"><button class="btn ghost" id="mNo">キャンセル</button><button class="btn danger" id="mYes">削除</button></div></div></div>
+
+<script>
+/* Minimal QR encoder (byte mode, ECC M, versions 1-10) - self contained */
+var QRX=(function(){
+var EXP=new Array(512),LOG=new Array(256);
+(function(){var x=1;for(var i=0;i<255;i++){EXP[i]=x;LOG[x]=i;x<<=1;if(x&256)x^=285}for(var i=255;i<512;i++)EXP[i]=EXP[i-255]})();
+function gmul(a,b){return a&&b?EXP[LOG[a]+LOG[b]]:0}
+function rsGen(n){var g=[1];for(var i=0;i<n;i++){var ng=new Array(g.length+1).fill(0);for(var j=0;j<g.length;j++){ng[j]^=g[j];ng[j+1]^=gmul(g[j],EXP[i])}g=ng}return g}
+function rsEnc(data,n){var g=rsGen(n),r=new Array(n).fill(0);for(var i=0;i<data.length;i++){var f=data[i]^r[0];r.shift();r.push(0);for(var j=0;j<n;j++)r[j]^=gmul(g[j+1],f)}return r}
+/* [ecPerBlock, [blocks, dataPerBlock], optional [blocks2, dataPerBlock2]] for ECC M */
+var M=[null,[10,[1,16]],[16,[1,28]],[26,[1,44]],[18,[2,32]],[24,[2,43]],[16,[4,27]],[18,[4,31]],[22,[2,38],[2,39]],[22,[3,36],[2,37]],[26,[4,43],[1,44]]];
+var ALIGN=[null,[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50]];
+function utf8(s){return Array.from(new TextEncoder().encode(s))}
+function bch(v,poly,hb){var d=v<<(hb-1===14?10:12);return d}
+function fmtBits(mask){var d=(0<<3|mask),r=d<<10;for(var i=14;i>=10;i--)if(r>>i&1)r^=0x537<<(i-10);return((d<<10)|r)^0x5412}
+function verBits(v){var r=v<<12;for(var i=17;i>=12;i--)if(r>>i&1)r^=0x1F25<<(i-12);return(v<<12)|r}
+function build(text){
+ var bytes=utf8(text),ver=0;
+ for(var v=1;v<=10;v++){var t=M[v],cap=t[1][0]*t[1][1]+(t[2]?t[2][0]*t[2][1]:0);var cc=v<10?8:16;if(4+cc+bytes.length*8<=cap*8){ver=v;break}}
+ if(!ver)throw new Error('too long');
+ var t=M[ver],cap=t[1][0]*t[1][1]+(t[2]?t[2][0]*t[2][1]:0),bits=[];
+ function put(v,n){for(var i=n-1;i>=0;i--)bits.push(v>>i&1)}
+ put(4,4);put(bytes.length,ver<10?8:16);bytes.forEach(function(b){put(b,8)});
+ put(0,Math.min(4,cap*8-bits.length));while(bits.length%8)bits.push(0);
+ var data=[];for(var i=0;i<bits.length;i+=8){var b=0;for(var j=0;j<8;j++)b=b<<1|bits[i+j];data.push(b)}
+ for(var p=0;data.length<cap;p++)data.push(p%2?17:236);
+ var blocks=[],pos=0,ec=t[0];
+ [t[1],t[2]].forEach(function(g){if(!g)return;for(var i=0;i<g[0];i++){blocks.push(data.slice(pos,pos+g[1]));pos+=g[1]}});
+ var ecs=blocks.map(function(b){return rsEnc(b,ec)}),fin=[],mx=Math.max.apply(null,blocks.map(function(b){return b.length}));
+ for(var i=0;i<mx;i++)blocks.forEach(function(b){if(i<b.length)fin.push(b[i])});
+ for(var i=0;i<ec;i++)ecs.forEach(function(e){fin.push(e[i])});
+ var n=ver*4+17,mod=[],fn=[];for(var i=0;i<n;i++){mod.push(new Array(n).fill(0));fn.push(new Array(n).fill(false))}
+ function set(r,c,v){if(r<0||c<0||r>=n||c>=n)return;mod[r][c]=v?1:0;fn[r][c]=true}
+ function finder(r,c){for(var i=-1;i<=7;i++)for(var j=-1;j<=7;j++){var on=i>=0&&i<=6&&j>=0&&j<=6&&(i==0||i==6||j==0||j==6||(i>=2&&i<=4&&j>=2&&j<=4));set(r+i,c+j,on)}}
+ finder(0,0);finder(0,n-7);finder(n-7,0);
+ for(var i=8;i<n-8;i++){set(6,i,i%2==0);set(i,6,i%2==0)}
+ var al=ALIGN[ver];for(var a=0;a<al.length;a++)for(var b=0;b<al.length;b++){var r=al[a],c=al[b];if((a==0&&b==0)||(a==0&&b==al.length-1)||(a==al.length-1&&b==0))continue;for(var i=-2;i<=2;i++)for(var j=-2;j<=2;j++)set(r+i,c+j,Math.max(Math.abs(i),Math.abs(j))!=1)}
+ for(var i=0;i<9;i++){fn[8][i]=true;fn[i][8]=true}for(var i=0;i<8;i++){fn[8][n-1-i]=true;fn[n-1-i][8]=true}
+ set(n-8,8,true);
+ if(ver>=7){var vb=verBits(ver);for(var i=0;i<18;i++){var v=vb>>i&1,a=Math.floor(i/3),b=i%3;set(a,n-11+b,v);set(n-11+b,a,v)}}
+ var seq=[];for(var i=0;i<fin.length;i++)for(var j=7;j>=0;j--)seq.push(fin[i]>>j&1);
+ var MASK=[function(r,c){return(r+c)%2==0},function(r){return r%2==0},function(r,c){return c%3==0},function(r,c){return(r+c)%3==0},function(r,c){return(Math.floor(r/2)+Math.floor(c/3))%2==0},function(r,c){return(r*c)%2+(r*c)%3==0},function(r,c){return((r*c)%2+(r*c)%3)%2==0},function(r,c){return((r+c)%2+(r*c)%3)%2==0}];
+ function place(mask){
+  var m=mod.map(function(r){return r.slice()}),k=0,up=true;
+  for(var c=n-1;c>0;c-=2){if(c==6)c--;for(var i=0;i<n;i++){var r=up?n-1-i:i;for(var d=0;d<2;d++){var cc=c-d;if(fn[r][cc])continue;var bit=k<seq.length?seq[k]:0;k++;if(MASK[mask](r,cc))bit^=1;m[r][cc]=bit}}up=!up}
+  var f=fmtBits(mask);
+  for(var i=0;i<15;i++){var v=f>>i&1;
+   if(i<6)m[i][8]=v;else if(i<8)m[i+1][8]=v;else m[n-15+i][8]=v;
+   if(i<8)m[8][n-1-i]=v;else if(i<9)m[8][15-i]=v;else m[8][14-i]=v}
+  m[n-8][8]=1;return m}
+ function pen(m){var s=0;for(var d=0;d<2;d++){for(var i=0;i<n;i++){var run=1;for(var j=1;j<n;j++){var a=d?m[j][i]:m[i][j],b=d?m[j-1][i]:m[i][j-1];if(a==b){run++;if(run==5)s+=3;else if(run>5)s++}else run=1}}}
+  for(var i=0;i<n-1;i++)for(var j=0;j<n-1;j++){var v=m[i][j];if(v==m[i][j+1]&&v==m[i+1][j]&&v==m[i+1][j+1])s+=3}
+  var p1=[1,0,1,1,1,0,1,0,0,0,0],p2=[0,0,0,0,1,0,1,1,1,0,1];
+  for(var i=0;i<n;i++)for(var j=0;j<=n-11;j++){var a=true,b=true,c=true,d2=true;for(var k=0;k<11;k++){if(m[i][j+k]!=p1[k])a=false;if(m[i][j+k]!=p2[k])b=false;if(m[j+k][i]!=p1[k])c=false;if(m[j+k][i]!=p2[k])d2=false}if(a)s+=40;if(b)s+=40;if(c)s+=40;if(d2)s+=40}
+  var dk=0;for(var i=0;i<n;i++)for(var j=0;j<n;j++)dk+=m[i][j];s+=Math.floor(Math.abs(dk*20-n*n*10)/(n*n))*10;return s}
+ var best=null,bs=1e9;for(var k=0;k<8;k++){var m=place(k),p=pen(m);if(p<bs){bs=p;best=m}}
+ return best}
+function svg(text,px){var m=build(text),n=m.length,q=4,sz=n+q*2,d='';
+ for(var r=0;r<n;r++)for(var c=0;c<n;c++)if(m[r][c])d+='M'+(c+q)+' '+(r+q)+'h1v1h-1z';
+ return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+sz+' '+sz+'" width="'+px+'" height="'+px+'" shape-rendering="crispEdges"><rect width="'+sz+'" height="'+sz+'" fill="#fff"/><path d="'+d+'" fill="#000"/></svg>'}
+return{build:build,svg:svg}})();
+
+
+</script>
+<script>
+var AKR=(function(){
+var K='axionkey.relay',L=null,es=null,onmsg=null,seen={},lastT={},enc=new TextEncoder();
+try{L=JSON.parse(localStorage.getItem(K)||'null')}catch(e){}
+function rnd(n){var a=new Uint8Array(n),s='',c='abcdefghjkmnpqrstuvwxyz23456789';crypto.getRandomValues(a);for(var i=0;i<n;i++)s+=c[a[i]%c.length];return s}
+function save(){try{if(L)localStorage.setItem(K,JSON.stringify(L));else localStorage.removeItem(K)}catch(e){}}
+async function sign(txt){var k=await crypto.subtle.importKey('raw',enc.encode(L.s),{name:'HMAC',hash:'SHA-256'},false,['sign']),b=new Uint8Array(await crypto.subtle.sign('HMAC',k,enc.encode(txt))),h='';for(var i=0;i<b.length;i++)h+=('0'+b[i].toString(16)).slice(-2);return h}
+function url(p){return 'https://ntfy.sh/'+L.t+(p||'')}
+function listen(){
+ if(es){es.close();es=null}
+ if(!L||!window.EventSource)return;
+ es=new EventSource(url('/sse'));
+ es.onmessage=async function(e){
+  try{var d=JSON.parse(e.data);if(d.event!=='message')return;
+   var v=JSON.parse(d.message);
+   if(!v||!v.p||!v.g||seen[v.i]||Math.abs(Date.now()-v.ts)>90000)return;
+   if(await sign(v.p+'|'+v.ts+'|'+v.i)!==v.g)return;
+   seen[v.i]=1;var m=JSON.parse(v.p);if(!m.mid)m.mid=v.i;
+   if(onmsg)onmsg(m)}catch(x){}}
+}
+var S={v:null,cb:null,err:null,det:null,st:null,tm:null,off:true,ci:0,
+ halt:function(){S.off=true;clearInterval(S.tm);if(S.st){S.st.getTracks().forEach(function(t){t.stop()});S.st=null}},
+ go:async function(idx){
+  S.halt();S.off=false;var gm=function(c){return navigator.mediaDevices.getUserMedia({video:c})};
+  try{
+   var s=await gm({facingMode:'environment'});
+   var devs=(await navigator.mediaDevices.enumerateDevices()).filter(function(d){return d.kind==='videoinput'});
+   var back=devs.filter(function(d){return !/front|user/i.test(d.label)&&!/ultra|wide/i.test(d.label)});
+   if(!back.length)back=devs.filter(function(d){return !/front|user/i.test(d.label)});
+   if(back.length){S.ci=idx%back.length;var cur=s.getVideoTracks()[0].getSettings().deviceId;
+    if(back[S.ci].deviceId!==cur){s.getTracks().forEach(function(t){t.stop()});s=await gm({deviceId:{exact:back[S.ci].deviceId},width:{ideal:1280},height:{ideal:720}})}}
+   S.st=s;S.v.srcObject=s;await S.v.play();
+   try{var tr=s.getVideoTracks()[0],cp=tr.getCapabilities?tr.getCapabilities():{};S.zmin=cp.zoom?cp.zoom.min:1;S.zmax=cp.zoom?cp.zoom.max:1;S.zi=0;if(cp.focusMode&&cp.focusMode.indexOf('continuous')>=0)await tr.applyConstraints({advanced:[{focusMode:'continuous'}]})}catch(e){}
+   S.tm=setInterval(function(){if(S.off)return;S.det.detect(S.v).then(function(r){if(r.length&&/AK2(\||\.|%7C)/i.test(r[0].rawValue)){S.halt();S.cb(r[0].rawValue)}}).catch(function(){S.ne=(S.ne||0)+1;if(S.ne===20)S.err('このブラウザでは読み取れません。キーのQRをスマホのカメラアプリで読むか、コピーしたリンクをナビで開いてください')})},150);
+  }catch(e){S.err('カメラを使えませんでした')}
+ }};
+if(L)listen();
+return{
+ linked:function(){return !!L},
+ code:function(){return L?'AK2|'+L.t+'|'+L.s:''},
+ create:function(){L={t:'ak'+rnd(18),s:rnd(24)};save();listen()},
+ join:function(code){var x=String(code);try{x=decodeURIComponent(x)}catch(e){}var m=/AK2[|.]([a-z0-9]{8,40})[|.]([a-z0-9]{16,40})/.exec(x);if(!m)throw new Error('bad');L={t:m[1],s:m[2]};save();listen()},
+ clear:function(){if(es){es.close();es=null}L=null;save()},
+ on:function(f){onmsg=f},
+ send:async function(m){
+  if(!L||!window.crypto||!crypto.subtle)return;
+  if(m.t==='hello'||m.t==='veh'){var n=Date.now();if(lastT[m.t]&&n-lastT[m.t]<600000)return;lastT[m.t]=n}
+  var p=JSON.stringify(m),ts=Date.now(),i=rnd(10);seen[i]=1;
+  var v={p:p,ts:ts,i:i,g:await sign(p+'|'+ts+'|'+i)};
+  fetch(url(),{method:'POST',body:JSON.stringify(v)}).catch(function(){})},
+ scan:function(v,cb,err){
+  if(!('BarcodeDetector' in window)){err('このブラウザはQR読み取りに未対応です。コードを貼り付けてください');return function(){}}
+  S.v=v;S.cb=cb;S.err=err;S.det=new BarcodeDetector({formats:['qr_code']});S.go(0);return S.halt},
+ next:function(){if(S.v)S.go(S.ci+1)},
+ zoom:function(){var tr=S.st&&S.st.getVideoTracks()[0];if(!tr||!(S.zmax>S.zmin))return '';S.zi=(S.zi+1)%3;var z=Math.min(S.zmax,S.zmin*(1+S.zi));tr.applyConstraints({advanced:[{zoom:z}]}).catch(function(){});return z.toFixed(1)+'倍'}
+}})();
+</script>
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)};
+var KEY='axionkey.v2';
+var S={self:null,locked:true,enabled:true,devices:[],history:[]};
+try{var r0=localStorage.getItem(KEY);if(r0){var o0=JSON.parse(r0);for(var k0 in o0)S[k0]=o0[k0]}}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function rid(n){var s='',c='abcdefghjkmnpqrstuvwxyz23456789';for(var i=0;i<n;i++)s+=c[Math.floor(Math.random()*c.length)];return s}
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function kind(){var u=navigator.userAgent;if(/iPad|Tablet/i.test(u)||(/Android/i.test(u)&&!/Mobile/i.test(u)))return'tablet';if(/iPhone|Android.*Mobile/i.test(u))return'phone';return'pc'}
+var KN={phone:'スマートフォン',tablet:'タブレット',pc:'パソコン'};
+if(!S.self){var k=kind();S.self={id:rid(10),type:k,name:KN[k]+' '+rid(3).toUpperCase()};save()}
+var IC={phone:'<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/>',tablet:'<rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M11 18h2"/>',pc:'<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',lock:'<rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/><path d="M12 15v2"/>',unlock:'<rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 7.5-2"/><path d="M12 15v2"/>',off:'<circle cx="12" cy="12" r="8"/><path d="M6.5 17.5l11-11"/>'};
+function svgi(n){return'<svg viewBox="0 0 24 24">'+IC[n]+'</svg>'}
+function log(t){S.history.unshift({t:Date.now(),text:t});if(S.history.length>200)S.history.length=200;save();renderHis()}
+function fmt(t){var d=new Date(t),p=function(n){return String(n).padStart(2,'0')};return p(d.getMonth()+1)+'/'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds())}
+var tt;function toast(m){var e=$('toast');e.textContent=m;e.classList.add('on');clearTimeout(tt);tt=setTimeout(function(){e.classList.remove('on')},2600)}
+
+/* ===== 車両リンク（index 32 との接続） ===== */
+var CH='axion-key-link-v1',SK='axionKeyLink.msg',bc=null,seen={},VEH={on:false,last:0},pend={};
+try{bc=new BroadcastChannel(CH);bc.onmessage=function(e){rx(e.data)}}catch(e){}
+window.addEventListener('storage',function(e){if(e.key===SK&&e.newValue){try{rx(JSON.parse(e.newValue))}catch(x){}}});
+function tx(m){m.mid=rid(10);m.ts=Date.now();seen[m.mid]=1;try{if(bc)bc.postMessage(m)}catch(e){}try{AKR.send(m)}catch(e){}try{localStorage.setItem(SK,JSON.stringify(m))}catch(e){}}
+function vehSeen(){var was=VEH.on;VEH.on=true;VEH.last=Date.now();if(!was){log('AXION CORE（index 32）に接続しました');renderKey()}}
+function rx(m){
+  if(m&&m.from==='car'&&m.t==='park'){apStatus(m)}
+  if(!m||m.from!=='car'||seen[m.mid])return;seen[m.mid]=1;
+  if(m.t==='veh'||m.t==='state'){vehSeen();
+    if(typeof m.locked==='boolean'&&m.locked!==S.locked){S.locked=m.locked;save();if(m.t==='state')log('車両側で'+(m.locked?'施錠':'解錠')+'されました');renderKey()}else renderKey()}
+  if(m.t==='ack'&&pend[m.cid]){var p=pend[m.cid];delete pend[m.cid];vehSeen();p(m)}
+}
+function ping(){tx({t:'hello',from:'key',kid:S.self.id})}
+setInterval(function(){ping();if(VEH.on&&Date.now()-VEH.last>9000){VEH.on=false;log('AXION CORE（index 32）との接続が切れました');renderKey()}},3000);
+/* ===== QR連携（中継サーバー経由・1回読み取るだけ） ===== */
+var u0='';try{u0=localStorage.getItem('axionkey.navurl')||''}catch(e){}
+if(!u0)u0=location.href.split('#')[0].replace(/[^\/]*$/,'')+'index_32_linked_qr.html';
+$('lkUrl').value=u0;
+function lkLink(){var c=AKR.code();if(!c)return'';var u=($('lkUrl').value||'').trim();try{localStorage.setItem('axionkey.navurl',u)}catch(e){}return u?u.split('#')[0]+'#'+c.replace(/\|/g,'.'):c}
+function lkShow(){var c=lkLink();if(!c)return;$('lkTxt').value=c;$('lkTxt').style.display='block';
+  var st='<style>#lkQr svg{max-width:100%;height:auto}</style>';
+  try{$('lkQr').innerHTML=st+QRX.svg(c,300)}catch(e){try{$('lkQr').innerHTML=st+QRX.svg(AKR.code(),300);$('lkSt').textContent='URLが長いため、ナビのURLなしのQRにしました'}catch(e2){}}}
+function lkInfo(){$('lkSt').textContent=AKR.linked()?'連携済みです。このQRは他の人に見せないでください':'まだ連携していません'}
+AKR.on(function(m){rx(m)});
+$('lkStart').onclick=function(){
+  if(!window.crypto||!crypto.subtle){$('lkSt').textContent='この開き方では使えません（httpsのページで開いてください）';return}
+  if(!AKR.linked())AKR.create();lkShow();lkInfo();ping()};
+$('lkCopy').onclick=function(){if(!AKR.linked())AKR.create();lkShow();var t=$('lkTxt').value;try{navigator.clipboard.writeText(t).then(function(){toast('リンクをコピーしました')},function(){$('lkTxt').select();toast('文字欄を長押ししてコピーしてください')})}catch(e){$('lkTxt').select();toast('文字欄を長押ししてコピーしてください')}};
+$('lkReset').onclick=function(){ask('連携を解除','ナビとの連携を解除します。もう一度QRを読み取れば再連携できます。',function(){AKR.clear();$('lkQr').innerHTML='';$('lkTxt').style.display='none';lkInfo();toast('解除しました')},'解除')};
+lkInfo();
+$('bVeh').onclick=function(){ping();toast('車両を探しています…');setTimeout(function(){if(!VEH.on)toast('index（32）が見つかりません。同じブラウザで開いてください')},1200)};
+
+/* ===== キー画面 ===== */
+var busy=false;
+function renderKey(){
+  var d=$('dial');d.classList.toggle('off',!S.enabled);d.classList.toggle('busy',busy);
+  $('lockico').innerHTML=IC[!S.enabled?'off':(S.locked?'lock':'unlock')];
+  $('lockTxt').textContent=!S.enabled?'無効':(busy?'処理中':(S.locked?'施錠中':'解錠中'));
+  $('lockSub').textContent=!S.enabled?'キーが無効です':(VEH.on?'AXION COREと接続中':(AKR.linked()?'連携済み（操作したときに通信します）':'車両は未接続（単体動作）'));
+  $('dKey').className='dot '+(S.enabled?'ac':'no');$('tKey').textContent=S.enabled?'キー有効':'キー無効';
+  $('dLock').className='dot '+(S.locked?'ok':'no');$('tLock').textContent=S.locked?'施錠':'解錠';
+  $('bLock').disabled=!S.enabled||busy||S.locked;$('bUnlock').disabled=!S.enabled||busy||!S.locked;
+  $('tog').setAttribute('aria-checked',S.enabled);
+  $('swTitle').textContent=S.enabled?'キーは有効です':'キーは無効です';
+  $('selfName').textContent=S.self.name;
+  $('devCount').textContent=S.devices.length+'台（接続中 '+S.devices.filter(function(x){return x.connected}).length+'台）';
+  $('dVeh').className='dot '+(VEH.on?'ok':'no');
+  $('tVeh').textContent=VEH.on?'接続中':(AKR.linked()?'連携済み（操作したときに通信します）':'未接続（index 32が見つかりません）');
+}
+function finish(lock,via){busy=false;S.locked=lock;save();log((lock?'施錠':'解錠')+'しました'+via);renderKey();toast((lock?'施錠':'解錠')+'しました')}
+function act(lock){
+  if(!S.enabled){toast('キーが無効のため操作できません');log('操作を拒否：キーが無効');return}
+  if(busy||S.locked===lock)return;busy=true;renderKey();
+  if(!VEH.on&&!AKR.linked()){setTimeout(function(){finish(lock,'（単体・車両未接続）')},800);return}
+  var cid=rid(8),done=false;
+  pend[cid]=function(a){if(done)return;done=true;
+    if(a.ok){finish(lock,'（車両）')}
+    else{busy=false;if(typeof a.locked==='boolean')S.locked=a.locked;save();renderKey();toast(a.reason||'車両が受け付けませんでした');log('車両が拒否：'+(a.reason||'不明'))}};
+  tx({t:'cmd',from:'key',kid:S.self.id,cid:cid,action:lock?'lock':'unlock'});
+  setTimeout(function(){if(done)return;done=true;delete pend[cid];busy=false;renderKey();toast('車両から応答がありません');log('車両から応答なし')},(AKR.linked()?7000:2500));
+}
+$('bLock').onclick=function(){act(true)};$('bUnlock').onclick=function(){act(false)};
+(function(){var d=$('dial');d.style.cursor='pointer';d.setAttribute('role','button');d.setAttribute('tabindex','0');d.setAttribute('aria-label','タップで施錠・解錠');
+ function tap(){try{if(navigator.vibrate)navigator.vibrate(30)}catch(e){}act(!S.locked)}
+ d.onclick=tap;d.onkeydown=function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();tap()}}})();
+$('bSummon').onclick=function(){
+  if(!S.enabled){toast('キーが無効のため操作できません');return}
+  if(!VEH.on&&!AKR.linked()){toast('先にナビと連携してください');return}
+  if(!navigator.geolocation){toast('位置情報が使えません');return}
+  ask('車を呼ぶ','今いる場所まで、車が自動で走ってきます。周りの安全を確認してから進めてください。',function(){
+    toast('現在地を取得しています');
+    navigator.geolocation.getCurrentPosition(function(p){
+      var cid=rid(8),done=false;
+      pend[cid]=function(a){if(done)return;done=true;if(a.ok){toast('車がこちらに向かっています');log('車を呼びました');if(a.lat!=null)window.openLive(a.lat,a.lon,p.coords.latitude,p.coords.longitude)}else{toast(a.reason||'車を呼べませんでした');log('車を呼べませんでした：'+(a.reason||'不明'))}};
+      tx({t:'cmd',from:'key',kid:S.self.id,cid:cid,action:'summon',lat:p.coords.latitude,lng:p.coords.longitude});
+      setTimeout(function(){if(done)return;done=true;delete pend[cid];toast('車から応答がありません')},(AKR.linked()?25000:6000));
+    },function(){toast('現在地を取得できませんでした')},{enableHighAccuracy:true,timeout:12000,maximumAge:5000});
+  },'始める',true)};
+var AP={mode:'demo',lot:'perp',slot:null,method:'back'};
+function apSel(ids,on){ids.forEach(function(i){$(i).style.outline=''});$(on).style.outline='2px solid #2f8cff'}
+apSel(['apMDemo','apMCam'],'apMDemo');apSel(['apLPerp','apLPara'],'apLPerp');apSel(['apBack','apFront'],'apBack');
+function apStatus(m){$('apSt').textContent=m.text||''}
+function apCmd(ex,cb){
+  if(!S.enabled){toast('キーが無効のため操作できません');return}
+  if(!VEH.on&&!AKR.linked()){toast('先にナビと連携してください');return}
+  var cid=rid(8),done=false,m={t:'cmd',from:'key',kid:S.self.id,cid:cid,action:'park'};
+  for(var q in ex)m[q]=ex[q];
+  pend[cid]=function(a){if(done)return;done=true;cb(a)};
+  $('apSt').textContent='ナビに送っています…';tx(m);
+  setTimeout(function(){if(done)return;done=true;delete pend[cid];$('apSt').textContent='車から応答がありません'},(AKR.linked()?30000:8000))}
+$('apMDemo').onclick=function(){AP.mode='demo';apSel(['apMDemo','apMCam'],'apMDemo');$('apLotRow').style.display='none';$('apPrep').textContent='駐車場を開く'};
+$('apMCam').onclick=function(){AP.mode='camera';apSel(['apMDemo','apMCam'],'apMCam');$('apLotRow').style.display='none';$('apSlots').innerHTML='';$('apGoBox').style.display='none';$('apPrep').textContent='カメラで駐車を始める'};
+$('apLPerp').onclick=function(){AP.lot='perp';apSel(['apLPerp','apLPara'],'apLPerp')};
+$('apLPara').onclick=function(){AP.lot='para';apSel(['apLPerp','apLPara'],'apLPara')};
+$('apBack').onclick=function(){AP.method='back';apSel(['apBack','apFront'],'apBack')};
+$('apFront').onclick=function(){AP.method='front';apSel(['apBack','apFront'],'apFront')};
+$('apPrep').onclick=function(){
+  if(AP.mode==='demo'){window.openPark();return}
+  AP.slot=null;$('apSlots').innerHTML='';$('apGoBox').style.display='none';
+  apCmd({step:'prep',mode:AP.mode,lot:AP.lot},function(a){
+    if(!a.ok){$('apSt').textContent=a.reason||'始められませんでした';return}
+    if(AP.mode==='camera'){$('apSt').textContent='カメラで駐車枠を探しています';return}
+    $('apSt').textContent='駐車する場所を選んでください';
+    var box=$('apSlots');box.innerHTML='';
+    (a.s||[]).forEach(function(x){var b=document.createElement('button');b.className='btn ghost';b.style.flex='none';b.style.padding='8px 14px';b.textContent=x[0]+'番';
+      b.onclick=function(){AP.slot=x[0];Array.prototype.forEach.call(box.children,function(c){c.style.outline=''});b.style.outline='2px solid #2f8cff';$('apGoBox').style.display='block'};box.appendChild(b)})})};
+$('apGo').onclick=function(){
+  if(AP.slot===null){toast('駐車する場所を選んでください');return}
+  apCmd({step:'go',slot:AP.slot,method:AP.method},function(a){$('apSt').textContent=a.ok?'駐車を始めました':(a.reason||'始められませんでした')})};
+$('apStop').onclick=function(){apCmd({step:'stop'},function(a){$('apSt').textContent=a.ok?'中止しました':(a.reason||'中止できませんでした')});$('apSlots').innerHTML='';$('apGoBox').style.display='none'};
+
+(function(){
+var PXM=13.1,PI=Math.PI,WM=300/PXM,HM=215/PXM,CAR_L=2.5,ROH=0.8,CW=1.7,CL=CAR_L+ROH+0.75,CC=CL/2-ROH;
+var START={x:188/PXM,y:198/PXM,phi:-PI/2},W1={x:150/PXM,y:88/PXM,phi:PI},W2={x:104.5/PXM,y:100/PXM,phi:PI/2},LANE=90/PXM,XC=188/PXM;
+var SL=[];
+(function(){function add(id,r,din){SL.push({id:id,x0:r[0]/PXM,y0:r[1]/PXM,x1:r[2]/PXM,y1:r[3]/PXM,din:din})}
+ for(var i=0;i<9;i++){var x0=2+32.8*i;add(i+1,[x0,1.2,x0+32.8,68],[0,-1])}
+ [[15,111.75,144.25],[14,144.25,177.25],[13,177.25,210]].forEach(function(a){add(a[0],[3.5,a[1],70.75,a[2]],[-1,0])});
+ [[10,111.75,143.75],[11,143.75,176.5],[12,176.5,209.5]].forEach(function(a){add(a[0],[230.5,a[1],297.5,a[2]],[1,0])});
+ SL.forEach(function(s){s.cx=(s.x0+s.x1)/2;s.cy=(s.y0+s.y1)/2;s.mx=s.din[0]===0?s.cx:(s.din[0]>0?s.x0:s.x1);s.my=s.din[1]===0?s.cy:(s.din[1]<0?s.y1:s.y0)})})();
+function hm(a,ta,b,tb,n){var o=[];for(var i=1;i<=n;i++){var u=i/n,u2=u*u,u3=u2*u,h1=2*u3-3*u2+1,h2=3*u2-2*u3,h3=u3-2*u2+u,h4=u3-u2;o.push({x:h1*a.x+h2*b.x+h3*ta.x+h4*tb.x,y:h1*a.y+h2*b.y+h3*ta.y+h4*tb.y})}return o}
+function chain(pts,P,dir){for(var k=0;k<P.length-1;k++){var a=P[k],b=P[k+1],d=Math.hypot(b.x-a.x,b.y-a.y)*1.1;
+ hm(a,{x:Math.cos(a.phi)*d*dir,y:Math.sin(a.phi)*d*dir},b,{x:Math.cos(b.phi)*d*dir,y:Math.sin(b.phi)*d*dir},28).forEach(function(p){p.dir=dir;pts.push(p)})}}
+function plan(sl,method){
+ var front=method==='front',h=Math.atan2(front?sl.din[1]:-sl.din[1],front?sl.din[0]:-sl.din[0]);
+ var F={x:sl.cx-Math.cos(h)*CC,y:sl.cy-Math.sin(h)*CC,phi:h},pts=[{x:START.x,y:START.y,dir:1}],S,P;
+ if(sl.din[1]<0){
+  if(sl.mx<=XC+0.5){S=(front&&sl.mx+4.5>XC-1.2)?{x:XC,y:LANE+1.5,phi:-PI/2}:{x:front?sl.mx+4.5:sl.mx-3,y:LANE,phi:PI}}
+  else{S=(front&&sl.mx-4.5<XC+1.2)?{x:XC,y:LANE+1.5,phi:-PI/2}:{x:front?sl.mx-4.5:sl.mx+3,y:LANE,phi:0}}
+  P=[START,S];
+ }else if(sl.din[0]<0){
+  S={x:W2.x,y:front?Math.max(sl.my-4.5,W2.y):sl.my+3,phi:PI/2};P=S.y>W2.y+0.2?[START,W1,W2,S]:[START,W1,W2];S=P[P.length-1];
+ }else{
+  S={x:XC,y:front?Math.min(sl.my+4.5,START.y):sl.my-3,phi:-PI/2};P=S.y<START.y-0.1?[START,S]:[START];S=P[P.length-1];
+ }
+ if(P.length>1)chain(pts,P,1);
+ if(front)chain(pts,[S,F],1);else chain(pts,[S,F],-1);
+ var s=0;pts[0].s=0;pts[0].phi=START.phi;
+ for(var i=1;i<pts.length;i++){var dx=pts[i].x-pts[i-1].x,dy=pts[i].y-pts[i-1].y;s+=Math.hypot(dx,dy);pts[i].s=s;pts[i].phi=Math.atan2(dy,dx)+(pts[i].dir<0?PI:0)}
+ pts[0].dir=pts[1]?pts[1].dir:1;pts.total=s;return pts}
+var OV=null;
+window.openPark=function(){
+ if(OV)return;
+ var img=new Image(),occ=[],cols=[],sel=-1,method='back',pts=null,s=0,raf=0,last=0,state='pick',pose=null,free=0;
+ var pal=['#94a3b8','#fca5a5','#93c5fd','#fcd34d','#a7f3d0','#c4b5fd','#e5e7eb','#64748b'];
+ function scenario(){do{occ=SL.map(function(){return Math.random()<0.45});free=occ.filter(function(o){return !o}).length}while(free<4);cols=SL.map(function(){return pal[(Math.random()*pal.length)|0]});sel=-1;pts=null;s=0;pose=null;state='pick'}
+ scenario();
+ OV=document.createElement('div');
+ OV.style.cssText='position:fixed;inset:0;z-index:300;background:#05080d;color:#eef2f8;display:flex;flex-direction:column;overflow:auto;padding:env(safe-area-inset-top,0px) 14px calc(env(safe-area-inset-bottom,0px) + 14px)';
+ OV.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0"><b>自動駐車（デモ）</b><button class="btn ghost" id="pkX" style="flex:none;padding:8px 16px">閉じる</button></div><div id="pkMsg" style="margin:0 0 10px;min-height:44px"></div><canvas id="pkCv" width="900" height="645" style="width:100%;border-radius:14px;background:#111"></canvas><div class="row" style="margin-top:12px"><button class="btn ghost" id="pkB">後ろから</button><button class="btn ghost" id="pkF">前から</button></div><div class="row" style="margin-top:10px"><button class="btn" id="pkGo">スタート</button><button class="btn ghost" id="pkRe" style="flex:none">場所を変える</button></div>';
+ document.body.appendChild(OV);
+ var cv=OV.querySelector('#pkCv'),msg=OV.querySelector('#pkMsg');
+ function say(t){msg.textContent=t}
+ function mark(){OV.querySelector('#pkB').style.outline=method==='back'?'2px solid #2f8cff':'';OV.querySelector('#pkF').style.outline=method==='front'?'2px solid #2f8cff':''}
+ function rect(c,k,cx,cy,phi,col,tail){c.save();c.translate(cx*k,cy*k);c.rotate(phi);c.fillStyle=col;c.strokeStyle='#0b1220';c.lineWidth=2;c.fillRect(-CL/2*k,-CW/2*k,CL*k,CW*k);c.strokeRect(-CL/2*k,-CW/2*k,CL*k,CW*k);
+  c.fillStyle='rgba(15,23,42,.65)';c.fillRect(-CL*0.12*k,-CW*0.36*k,CL*0.34*k,CW*0.72*k);c.fillStyle='#fde047';c.fillRect(CL/2*k-3,-CW/2*k+2,3,CW*0.2*k);c.fillRect(CL/2*k-3,CW/2*k-2-CW*0.2*k,3,CW*0.2*k);c.fillStyle='#ef4444';c.fillRect(-CL/2*k,-CW/2*k+2,3,CW*0.2*k);c.fillRect(-CL/2*k,CW/2*k-2-CW*0.2*k,3,CW*0.2*k);c.restore()}
+ function draw(){var c=cv.getContext('2d'),k=cv.width/WM;c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,cv.width,cv.height);if(img.complete)c.drawImage(img,0,0,cv.width,cv.height);
+  SL.forEach(function(sl,i){if(occ[i]){rect(c,k,sl.cx,sl.cy,Math.atan2(sl.din[1],sl.din[0]),cols[i])}
+   else{c.strokeStyle=sel===i?'#2f8cff':'rgba(47,140,255,.85)';c.lineWidth=sel===i?5:2;c.strokeRect(sl.x0*k,sl.y0*k,(sl.x1-sl.x0)*k,(sl.y1-sl.y0)*k);if(sel===i){c.fillStyle='rgba(47,140,255,.28)';c.fillRect(sl.x0*k,sl.y0*k,(sl.x1-sl.x0)*k,(sl.y1-sl.y0)*k)}
+    c.fillStyle='#fff';c.strokeStyle='#0b1220';c.lineWidth=4;c.font='bold '+Math.round(k*0.85)+'px sans-serif';c.textAlign='center';c.textBaseline='middle';c.strokeText(sl.id,sl.cx*k,sl.cy*k);c.fillText(sl.id,sl.cx*k,sl.cy*k)}});
+  var p=pose||START;rect(c,k,p.x+Math.cos(p.phi)*CC,p.y+Math.sin(p.phi)*CC,p.phi,'#f8fafc')}
+ function at(sv){var a=0,b=pts.length-1;while(b-a>1){var m=(a+b)>>1;if(pts[m].s<=sv)a=m;else b=m}var p=pts[a],q=pts[b],u=q.s>p.s?(sv-p.s)/(q.s-p.s):0;return{x:p.x+(q.x-p.x)*u,y:p.y+(q.y-p.y)*u,phi:q.phi,dir:q.dir}}
+ function loop(t){if(!OV)return;var dt=Math.min(.1,(t-last)/1000);last=t;
+  if(state==='run'){var pp=at(s);s=Math.min(pts.total,s+(pp.dir<0?1.8:3.2)*dt);pose=at(s);
+   say(pose.dir<0?'リバースに入ります。車両周辺を直接確認してください。':'ドライブです。前進します。');
+   if(s>=pts.total){state='done';say('オートパークを完了しました。')}}
+  draw();raf=requestAnimationFrame(loop)}
+ img.onload=draw;img.src='data:image/jpeg;base64,data:image/jpeg;base64,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';
+ cv.onclick=function(e){if(state!=='pick')return;var r=cv.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*WM,y=(e.clientY-r.top)/r.height*HM;
+  for(var i=0;i<SL.length;i++){var sl=SL[i];if(x>=sl.x0&&x<=sl.x1&&y>=sl.y0&&y<=sl.y1){if(occ[i]){say(sl.id+'番には車がいます');return}sel=i;say(sl.id+'番に駐車します。向きを選んで、スタートを押してください。');return}}};
+ OV.querySelector('#pkB').onclick=function(){method='back';mark()};
+ OV.querySelector('#pkF').onclick=function(){method='front';mark()};
+ OV.querySelector('#pkGo').onclick=function(){if(state==='run')return;if(sel<0){say('駐車する場所をタッチしてください（青い枠です）');return}
+  pts=plan(SL[sel],method);s=0;pose=START;state='run';last=performance.now()};
+ OV.querySelector('#pkRe').onclick=function(){scenario();say('駐車したい場所をタッチしてください。青い枠が、駐車できる場所です。')};
+ OV.querySelector('#pkX').onclick=function(){cancelAnimationFrame(raf);OV.remove();OV=null};
+ mark();say('駐車したい場所をタッチしてください。青い枠が、駐車できる場所です。');raf=requestAnimationFrame(loop);
+};
+})();
+
+(function(){
+var PI=Math.PI,LV=null;
+function lib(u,css){return new Promise(function(ok,ng){var e;if(css){e=document.createElement('link');e.rel='stylesheet';e.href=u}else{e=document.createElement('script');e.src=u}e.onload=ok;e.onerror=ng;document.head.appendChild(e)})}
+function closeLive(){if(!LV)return;cancelAnimationFrame(LV.raf);try{LV.map.remove()}catch(e){}try{LV.rd.dispose()}catch(e){}LV.ov.remove();window.removeEventListener('resize',LV.rs);LV=null}
+window.openLive=async function(la0,lo0,la1,lo1){
+ closeLive();
+ var ov=document.createElement('div');
+ ov.style.cssText='position:fixed;inset:0;z-index:300;background:#05080d;color:#eef2f8;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)';
+ ov.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px"><b id="lvT">ルートを探しています…</b><button class="btn ghost" id="lvX" style="flex:none;padding:8px 16px">閉じる</button></div><div id="lvMap" style="flex:4;min-height:0"></div><div id="lvTh" style="flex:6;min-height:0;position:relative"><div style="position:absolute;left:10px;top:10px;z-index:5;width:56px;height:56px;border-radius:50%;background:#fff;border:3px solid #374151;color:#111;display:flex;flex-direction:column;align-items:center;justify-content:center;font:800 18px/1 sans-serif"><span id="lvSv">0</span><small style="font:700 8px sans-serif;color:#6b7280">km/h</small></div></div>';
+ document.body.appendChild(ov);var T=ov.querySelector('#lvT');ov.querySelector('#lvX').onclick=closeLive;LV={ov:ov};
+ try{if(!window.L){await lib('https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css',1);await lib('https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js')}if(!window.THREE)await lib('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js')}
+ catch(e){T.textContent='地図の部品を読み込めませんでした（ネットを確認してください）';return}
+ var geo=null;try{var r=await fetch('https://router.project-osrm.org/route/v1/driving/'+lo0+','+la0+';'+lo1+','+la1+'?overview=full&geometries=geojson');var j=await r.json();geo=j.routes[0].geometry.coordinates}catch(e){}
+ if(!geo||geo.length<2)geo=[[lo0,la0],[lo1,la1]];
+ if(!LV||LV.ov!==ov)return;
+ var kx=111320*Math.cos(geo[0][1]*PI/180),kz=110540,P=geo.map(function(p){return{x:(p[0]-geo[0][0])*kx,z:-(p[1]-geo[0][1])*kz,lat:p[1],lon:p[0]}}),D=[0];
+ for(var i=1;i<P.length;i++)D.push(D[i-1]+Math.hypot(P[i].x-P[i-1].x,P[i].z-P[i-1].z));
+ var TOT=D[D.length-1]||1,VMAX=Math.min(55,Math.max(11,TOT/150));
+ function at(sv){var a=0,b=P.length-1;while(b-a>1){var m=(a+b)>>1;if(D[m]<=sv)a=m;else b=m}var p=P[a],q=P[b],l=D[b]-D[a]||1,u=Math.min(1,Math.max(0,(sv-D[a])/l));return{x:p.x+(q.x-p.x)*u,z:p.z+(q.z-p.z)*u,lat:p.lat+(q.lat-p.lat)*u,lon:p.lon+(q.lon-p.lon)*u,dx:(q.x-p.x)/l,dz:(q.z-p.z)/l}}
+ var map=L.map(ov.querySelector('#lvMap'),{zoomControl:false,attributionControl:false}).setView([la0,lo0],17);
+ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
+ L.polyline(P.map(function(p){return[p.lat,p.lon]}),{color:'#34d399',weight:7,opacity:.9}).addTo(map);
+ L.circleMarker([la1,lo1],{radius:9,color:'#fff',weight:3,fillColor:'#2f8cff',fillOpacity:1}).addTo(map);
+ var cm=L.marker([la0,lo0],{icon:L.divIcon({className:'',iconSize:[26,26],iconAnchor:[13,13],html:'<div id="lvAr" style="width:0;height:0;border-left:11px solid transparent;border-right:11px solid transparent;border-bottom:26px solid #f59e0b;filter:drop-shadow(0 0 3px #000)"></div>'})}).addTo(map);
+ var th=ov.querySelector('#lvTh'),rd=new THREE.WebGLRenderer({antialias:true});th.appendChild(rd.domElement);
+ var sc=new THREE.Scene();sc.background=new THREE.Color(0x9cbdf0);sc.fog=new THREE.Fog(0xcfdcf2,70,420);
+ sc.add(new THREE.AmbientLight(0xffffff,.8));var dl=new THREE.DirectionalLight(0xffffff,.55);dl.position.set(30,80,20);sc.add(dl);
+ var gd=new THREE.Mesh(new THREE.PlaneGeometry(4000,4000),new THREE.MeshLambertMaterial({color:0xd5dae0}));gd.rotation.x=-PI/2;sc.add(gd);
+ var vt=[],ix=[];for(i=0;i<P.length;i++){var a0=P[Math.max(0,i-1)],b0=P[Math.min(P.length-1,i+1)],dx=b0.x-a0.x,dz=b0.z-a0.z,l=Math.hypot(dx,dz)||1,nx=-dz/l*3.4,nz=dx/l*3.4;vt.push(P[i].x+nx,0.03,P[i].z+nz,P[i].x-nx,0.03,P[i].z-nz);if(i>0){var q=(i-1)*2;ix.push(q,q+1,q+2,q+1,q+3,q+2)}}
+ var rg=new THREE.BufferGeometry();rg.setAttribute('position',new THREE.Float32BufferAttribute(vt,3));rg.setIndex(ix);rg.computeVertexNormals();
+ sc.add(new THREE.Mesh(rg,new THREE.MeshLambertMaterial({color:0x3b4149,side:THREE.DoubleSide})));
+ var seed=7;function rnd(){seed=(seed*16807)%2147483647;return seed/2147483647}
+ var bc=[0xe5e9ef,0xc9d6ea,0xf1f3f6,0xb8c4d6,0xdfe6f0],step=Math.max(24,TOT/260);
+ for(var sv=12;sv<TOT;sv+=step){var pq=at(sv);[-1,1].forEach(function(sd){var off=13+rnd()*14,w=8+rnd()*8,d=8+rnd()*8,h=6+rnd()*28,bm=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshLambertMaterial({color:bc[(rnd()*5)|0]}));bm.position.set(pq.x-pq.dz*sd*off,h/2,pq.z+pq.dx*sd*off);bm.rotation.y=Math.atan2(pq.dx,pq.dz);sc.add(bm)})}
+ var car=new THREE.Group(),bd=new THREE.Mesh(new THREE.BoxGeometry(1.8,0.8,4.2),new THREE.MeshLambertMaterial({color:0x2b2f3a}));bd.position.y=0.7;car.add(bd);
+ var cb=new THREE.Mesh(new THREE.BoxGeometry(1.6,0.7,2.2),new THREE.MeshLambertMaterial({color:0x1d2330}));cb.position.set(0,1.4,-0.2);car.add(cb);
+ [-0.6,0.6].forEach(function(x){var tl=new THREE.Mesh(new THREE.BoxGeometry(0.45,0.2,0.1),new THREE.MeshBasicMaterial({color:0xef4444}));tl.position.set(x,0.8,-2.12);car.add(tl)});sc.add(car);
+ var cam=new THREE.PerspectiveCamera(60,1,0.5,900);
+ function rs(){var w=th.clientWidth,h=th.clientHeight;rd.setSize(w,h);cam.aspect=w/h;cam.updateProjectionMatrix();map.invalidateSize()}
+ window.addEventListener('resize',rs);setTimeout(rs,60);
+ LV={ov:ov,map:map,rd:rd,rs:rs,raf:0};
+ var s=0,v=0,last=performance.now(),hd=null,mt=0,fin=false;
+ function loop(t){if(!LV||LV.ov!==ov)return;var dt=Math.min(.1,(t-last)/1000);last=t;
+  if(!fin){var rem=TOT-s;v+=(Math.min(VMAX,Math.max(2.5,rem/3))-v)*Math.min(1,dt*1.5);s=Math.min(TOT,s+v*dt);
+   if(TOT-s<1.5){fin=true;v=0;T.textContent='到着しました'}else T.textContent='車が向かっています　残り約'+Math.round(TOT-s)+'m'}
+  var q=at(s),ta=Math.atan2(q.dx,q.dz);if(hd===null)hd=ta;var df=Math.atan2(Math.sin(ta-hd),Math.cos(ta-hd));hd+=df*Math.min(1,dt*4);
+  car.position.set(q.x,0,q.z);car.rotation.y=hd;gd.position.set(q.x,0,q.z);
+  cam.position.set(q.x-Math.sin(hd)*9,4.6,q.z-Math.cos(hd)*9);cam.lookAt(q.x+Math.sin(hd)*10,1.2,q.z+Math.cos(hd)*10);rd.render(sc,cam);
+  var sv2=ov.querySelector('#lvSv');if(sv2)sv2.textContent=Math.round(v*3.6);
+  if(t-mt>150){mt=t;cm.setLatLng([q.lat,q.lon]);map.setView([q.lat,q.lon],17,{animate:false});var ar=ov.querySelector('#lvAr');if(ar)ar.style.transform='rotate('+(hd*180/PI)+'deg)'}
+  LV.raf=requestAnimationFrame(loop)}
+ T.textContent='車が向かっています';LV.raf=requestAnimationFrame(loop);
+};
+})();
+$('tog').onclick=function(){S.enabled=!S.enabled;save();log(S.enabled?'キーを有効にしました':'キーを無効にしました');renderKey()};
+
+/* ===== 端末 ===== */
+function renderDev(){
+  var l=$('devList');
+  if(!S.devices.length){l.innerHTML='<div class="empty">登録された端末はありません。<br>「ペアリング」でQRコードを読み取ると追加できます。</div>';return}
+  l.innerHTML=S.devices.map(function(d){return'<div class="dev"><div class="ico">'+svgi(d.type)+'</div><div class="m"><b>'+esc(d.name)+'</b><span class="muted"><i class="dot '+(d.connected?'ok':'')+'" style="display:inline-block;margin-right:6px"></i>'+(d.connected?'接続中':'未接続')+'・'+fmt(d.added)+' 登録</span></div><div class="acts"><button class="sm" data-t="'+esc(d.id)+'">'+(d.connected?'切断':'接続')+'</button><button class="sm d" data-d="'+esc(d.id)+'">削除</button></div></div>'}).join('');
+}
+$('devList').onclick=function(e){
+  var t=e.target.getAttribute('data-t'),x=e.target.getAttribute('data-d');
+  var dv=S.devices.filter(function(d){return d.id===(t||x)})[0];if(!dv)return;
+  if(t){dv.connected=!dv.connected;save();log(dv.name+(dv.connected?' に接続しました':' を切断しました'));renderDev();renderKey()}
+  if(x){ask('端末を削除',dv.name+' を登録から削除します。この端末ではキーを使えなくなります。',function(){S.devices=S.devices.filter(function(d){return d.id!==dv.id});save();log(dv.name+' を削除しました');renderDev();renderKey();toast('端末を削除しました')})}
+};
+var yes=null;
+function ask(t,b,f,lb,pr){$('mTitle').textContent=t;$('mBody').textContent=b;yes=f;$('mYes').textContent=lb||'削除';$('mYes').className=pr?'btn':'btn danger';$('modal').classList.add('on')}
+$('mNo').onclick=function(){$('modal').classList.remove('on')};
+$('mYes').onclick=function(){$('modal').classList.remove('on');if(yes)yes()};
+
+/* ===== 履歴 ===== */
+function renderHis(){$('hisList').innerHTML=S.history.length?S.history.map(function(h){return'<div class="hist"><time>'+fmt(h.t)+'</time><div>'+esc(h.text)+'</div></div>'}).join(''):'<div class="empty">操作履歴はまだありません。</div>'}
+$('bClear').onclick=function(){ask('履歴を消去','保存されている操作履歴をすべて消去します。',function(){S.history=[];save();renderHis();toast('履歴を消去しました')})};
+
+/* ===== ペアリング ===== */
+var TTL=120000,exp=0,nonce='';
+function payload(){return['AXIONKEY1',S.self.id,S.self.name.replace(/\|/g,' '),S.self.type,exp,nonce].join('|')}
+function makeQR(){
+  exp=Date.now()+TTL;nonce=rid(6);var p=payload();
+  try{$('qr').innerHTML=QRX.svg(p,256)}catch(e){$('qr').innerHTML='<div style="color:#333;line-height:1.5;padding:12px">QRを作れませんでした</div>'}
+  $('codeTxt').value=p;
+}
+setInterval(function(){
+  if(!$('v-pair').classList.contains('on'))return;
+  var left=exp-Date.now();if(left<=0){makeQR();left=TTL}
+  $('tbar').style.width=Math.max(0,left/TTL*100)+'%';$('tleft').textContent='有効期限まで '+Math.ceil(left/1000)+' 秒';
+},500);
+$('bRefresh').onclick=makeQR;
+function addFrom(code){
+  var p=String(code).trim().split('|');
+  if(p[0]!=='AXIONKEY1'||p.length<6)return'AXION KEYのQRコードではありません';
+  if(Number(p[4])<Date.now())return'このQRコードは有効期限が切れています。相手の端末で更新してください';
+  if(p[1]===S.self.id)return'この端末自身のQRコードです。別の端末で読み取ってください';
+  if(S.devices.some(function(d){return d.id===p[1]}))return'この端末はすでに登録されています';
+  var d={id:p[1],name:p[2].slice(0,40),type:IC[p[3]]?p[3]:'phone',connected:false,added:Date.now()};
+  S.devices.push(d);save();log(d.name+' とペアリングしました');renderDev();renderKey();
+  setTimeout(function(){d.connected=true;save();log(d.name+' に接続しました');renderDev();renderKey()},1200);
+  toast(d.name+' を登録しました');return null;
+}
+var stream=null,raf=0,jsqrLoading=false;
+function stopScan(){cancelAnimationFrame(raf);if(stream){stream.getTracks().forEach(function(t){t.stop()});stream=null}$('scan').classList.remove('on');$('bStop').style.display='none';$('bScan').style.display=''}
+$('bStop').onclick=function(){stopScan();$('scanMsg').textContent=''};
+function loadJsQR(cb){if(window.jsQR)return cb();if(jsqrLoading)return;jsqrLoading=true;var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js';s.onload=function(){jsqrLoading=false;cb()};s.onerror=function(){jsqrLoading=false;cb()};document.head.appendChild(s)}
+$('bScan').onclick=function(){
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){$('scanMsg').textContent='この環境ではカメラを使えません（https または localhost で開いてください）。コードの貼り付けをお試しください。';return}
+  var bd=null;try{if('BarcodeDetector' in window)bd=new BarcodeDetector({formats:['qr_code']})}catch(e){}
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}).then(function(s){
+    stream=s;var v=$('vid');v.srcObject=s;v.play();$('scan').classList.add('on');$('bStop').style.display='';$('bScan').style.display='none';$('scanMsg').textContent='QRコードを枠に合わせてください';
+    var c=document.createElement('canvas'),x=c.getContext('2d',{willReadFrequently:true});
+    function got(data){var er=addFrom(data);if(!er){stopScan();$('scanMsg').textContent='ペアリングが完了しました';return true}$('scanMsg').textContent=er;return false}
+    function tick(){
+      if(!stream)return;
+      if(v.readyState>=2&&v.videoWidth){
+        if(bd){bd.detect(v).then(function(r){if(r&&r[0]&&r[0].rawValue){if(got(r[0].rawValue))return}raf=requestAnimationFrame(tick)}).catch(function(){raf=requestAnimationFrame(tick)});return}
+        if(window.jsQR){c.width=v.videoWidth;c.height=v.videoHeight;x.drawImage(v,0,0);var im=x.getImageData(0,0,c.width,c.height),r=jsQR(im.data,im.width,im.height);if(r&&r.data&&got(r.data))return}
+      }
+      raf=requestAnimationFrame(tick)}
+    if(bd)tick();else loadJsQR(function(){if(!window.jsQR)$('scanMsg').textContent='読み取り機能を読み込めませんでした。コードの貼り付けをお試しください。';tick()});
+  }).catch(function(){$('scanMsg').textContent='カメラを使えませんでした。ブラウザのカメラ許可を確認するか、コードを貼り付けてください。'});
+};
+$('bManual').onclick=function(){var er=addFrom($('manual').value);if(er)toast(er);else $('manual').value=''};
+var VN=['Aiko','Ren','Sora','Mio','Haru'];
+$('bVirtual').onclick=function(){var ty=['phone','tablet','pc'][Math.floor(Math.random()*3)];addFrom(['AXIONKEY1','v-'+rid(8),'仮想'+KN[ty]+'（'+VN[Math.floor(Math.random()*VN.length)]+'）',ty,Date.now()+60000,rid(4)].join('|'))};
+
+/* ===== タブ ===== */
+var tabs=document.querySelectorAll('nav button');
+tabs.forEach(function(b){b.onclick=function(){
+  tabs.forEach(function(x){x.setAttribute('aria-selected',x===b)});
+  document.querySelectorAll('.view').forEach(function(v){v.classList.remove('on')});
+  $('v-'+b.dataset.v).classList.add('on');
+  if(b.dataset.v!=='pair')stopScan();else if(!exp||exp<Date.now())makeQR();
+  window.scrollTo(0,0)}});
+
+renderKey();renderDev();renderHis();makeQR();ping();
+})();
+</script>
+</body>
+</html>
