@@ -107,6 +107,17 @@ input[type=text]{width:100%;padding:13px 14px;border-radius:14px;border:1px soli
         </div>
       </div>
       <div class="grid" style="align-content:start">
+        <div class="panel" id="acctPanel">
+          <h2>アカウント</h2>
+          <div id="acctOut">
+            <p class="muted" style="margin-top:0">ナビと同じ名前のアカウントでログインすると、ナビ側も自動でログインします。</p>
+            <input type="text" id="acName" maxlength="20" placeholder="名前" aria-label="アカウント名" autocomplete="off">
+            <div class="row" style="margin-top:10px"><button class="btn" id="acLogin">ログイン</button><button class="btn ghost" id="acCreate">アカウントを作成</button></div>
+          </div>
+          <div id="acctIn" style="display:none">
+            <div class="veh"><i class="dot ok"></i><div class="m"><b id="acNow"></b><div class="muted" id="acSt"></div></div><button class="sm" id="acLogout">ログアウト</button></div>
+          </div>
+        </div>
         <div class="panel">
           <h2>接続先の車両</h2>
           <div class="veh"><i class="dot" id="dVeh"></i><div class="m"><b>AXION CORE（index 32）</b><div class="muted" id="tVeh"></div></div><button class="sm" id="bVeh">再接続</button></div>
@@ -296,7 +307,7 @@ return{
 (function(){
 var $=function(i){return document.getElementById(i)};
 var KEY='axionkey.v2';
-var S={self:null,locked:true,enabled:true,devices:[],history:[]};
+var S={self:null,locked:true,enabled:true,devices:[],history:[],account:null,accounts:[]};
 try{var r0=localStorage.getItem(KEY);if(r0){var o0=JSON.parse(r0);for(var k0 in o0)S[k0]=o0[k0]}}catch(e){}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 function rid(n){var s='',c='abcdefghjkmnpqrstuvwxyz23456789';for(var i=0;i<n;i++)s+=c[Math.floor(Math.random()*c.length)];return s}
@@ -315,15 +326,16 @@ var CH='axion-key-link-v1',SK='axionKeyLink.msg',bc=null,seen={},VEH={on:false,l
 try{bc=new BroadcastChannel(CH);bc.onmessage=function(e){rx(e.data)}}catch(e){}
 window.addEventListener('storage',function(e){if(e.key===SK&&e.newValue){try{rx(JSON.parse(e.newValue))}catch(x){}}});
 function tx(m){m.mid=rid(10);m.ts=Date.now();seen[m.mid]=1;try{if(bc)bc.postMessage(m)}catch(e){}try{AKR.send(m)}catch(e){}try{localStorage.setItem(SK,JSON.stringify(m))}catch(e){}}
-function vehSeen(){var was=VEH.on;VEH.on=true;VEH.last=Date.now();if(!was){log('AXION CORE（index 32）に接続しました');renderKey()}}
+function vehSeen(){var was=VEH.on;VEH.on=true;VEH.last=Date.now();if(!was){log('AXION CORE（index 32）に接続しました');sendLogin();renderKey()}}
 function rx(m){
   if(m&&m.from==='car'&&m.t==='park'){apStatus(m)}
   if(!m||m.from!=='car'||seen[m.mid])return;seen[m.mid]=1;
+  if(m.t==='acct'){acctReply(m);return}
   if(m.t==='veh'||m.t==='state'){vehSeen();
     if(typeof m.locked==='boolean'&&m.locked!==S.locked){S.locked=m.locked;save();if(m.t==='state')log('車両側で'+(m.locked?'施錠':'解錠')+'されました');renderKey()}else renderKey()}
   if(m.t==='ack'&&pend[m.cid]){var p=pend[m.cid];delete pend[m.cid];vehSeen();p(m)}
 }
-function ping(){tx({t:'hello',from:'key',kid:S.self.id})}
+function ping(){tx({t:'hello',from:'key',kid:S.self.id,acct:S.account?S.account.name:null})}
 setInterval(function(){ping();if(VEH.on&&Date.now()-VEH.last>9000){VEH.on=false;log('AXION CORE（index 32）との接続が切れました');renderKey()}},3000);
 /* ===== QR連携（中継サーバー経由・1回読み取るだけ） ===== */
 var u0='';try{u0=localStorage.getItem('axionkey.navurl')||''}catch(e){}
@@ -343,6 +355,32 @@ $('lkReset').onclick=function(){ask('連携を解除','ナビとの連携を解�
 lkInfo();
 $('bVeh').onclick=function(){ping();toast('車両を探しています…');setTimeout(function(){if(!VEH.on)toast('index（32）が見つかりません。同じブラウザで開いてください')},1200)};
 
+/* ===== アカウント（ナビと同じ名前でログイン連携） ===== */
+var NAVACC=null; /* null=未確認 / true=ナビもログイン済み / false=ナビに同名アカウントなし */
+function sendLogin(){if(S.account)tx({t:'login',from:'key',kid:S.self.id,name:S.account.name})}
+function acctReply(m){
+  if(!S.account||m.name!==S.account.name)return;
+  NAVACC=!!m.found;
+  if(NAVACC){log('ナビも「'+S.account.name+'」でログインしました');toast('ナビも「'+S.account.name+'」でログインしました')}
+  else{log('ナビに「'+S.account.name+'」のアカウントがありません');toast('ナビに同じ名前のアカウントがありません')}
+  renderAcct()}
+function renderAcct(){
+  var on=!!S.account;$('acctOut').style.display=on?'none':'block';$('acctIn').style.display=on?'block':'none';
+  if(!on)return;
+  $('acNow').textContent=S.account.name;
+  $('acSt').textContent=NAVACC===true?'ナビもログイン中':(NAVACC===false?'ナビに同じ名前のアカウントがありません':(VEH.on||AKR.linked()?'ナビに送信しました':'ナビ未接続（つながると自動でログインします）'))}
+function acName(){return ($('acName').value||'').replace(/\s+/g,' ').trim()}
+function acFind(n){var l=n.toLowerCase();for(var i=0;i<S.accounts.length;i++)if(S.accounts[i].name.toLowerCase()===l)return S.accounts[i];return null}
+function acIn(a){S.account=a;NAVACC=null;save();log('アカウント「'+a.name+'」でログインしました');$('acName').value='';sendLogin();renderKey();toast('「'+a.name+'」でログインしました')}
+$('acCreate').onclick=function(){var n=acName();if(!n){toast('名前を入力してください');return}
+  if(acFind(n)){toast('その名前はすでにあります。ログインしてください');return}
+  var a={name:n,created:Date.now()};S.accounts.push(a);save();log('アカウント「'+n+'」を作成しました');acIn(a)};
+$('acLogin').onclick=function(){var n=acName();if(!n){toast('名前を入力してください');return}
+  var a=acFind(n);if(!a){toast('そのアカウントはありません。「アカウントを作成」を押してください');return}acIn(a)};
+$('acName').onkeydown=function(e){if(e.key==='Enter')$('acLogin').onclick()};
+$('acLogout').onclick=function(){var n=S.account&&S.account.name;S.account=null;NAVACC=null;save();
+  tx({t:'logout',from:'key',kid:S.self.id});log('アカウント「'+n+'」からログアウトしました');renderKey();toast('ログアウトしました')};
+
 /* ===== キー画面 ===== */
 var busy=false;
 function renderKey(){
@@ -357,6 +395,7 @@ function renderKey(){
   $('swTitle').textContent=S.enabled?'キーは有効です':'キーは無効です';
   $('selfName').textContent=S.self.name;
   $('devCount').textContent=S.devices.length+'台（接続中 '+S.devices.filter(function(x){return x.connected}).length+'台）';
+  renderAcct();
   $('dVeh').className='dot '+(VEH.on?'ok':'no');
   $('tVeh').textContent=VEH.on?'接続中':(AKR.linked()?'連携済み（操作したときに通信します）':'未接続（index 32が見つかりません）');
 }
