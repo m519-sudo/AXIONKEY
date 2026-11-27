@@ -384,7 +384,7 @@ $('bSummon').onclick=function(){
     toast('現在地を取得しています');
     navigator.geolocation.getCurrentPosition(function(p){
       var cid=rid(8),done=false;
-      pend[cid]=function(a){if(done)return;done=true;if(a.ok){toast('車がこちらに向かっています');log('車を呼びました');if(a.lat!=null)window.openLive(a.lat,a.lon,p.coords.latitude,p.coords.longitude);else toast('車の位置が届いていません。ナビのファイルも最新に差し替えてください')}else{toast(a.reason||'車を呼べませんでした');log('車を呼べませんでした：'+(a.reason||'不明'))}};
+      pend[cid]=function(a){if(done)return;done=true;if(a.ok&&a.lat!=null){toast('車がこちらに向かっています');log('車を呼びました');window.openLive(a.lat,a.lon,p.coords.latitude,p.coords.longitude)}else if(a.ok){toast('ナビのファイルが古いようです。最新に差し替えてください')}else{toast(a.reason||'車を呼べませんでした');log('車を呼べませんでした：'+(a.reason||'不明'))}};
       tx({t:'cmd',from:'key',kid:S.self.id,cid:cid,action:'summon',lat:p.coords.latitude,lng:p.coords.longitude});
       setTimeout(function(){if(done)return;done=true;delete pend[cid];toast('車から応答がありません')},(AKR.linked()?25000:6000));
     },function(){toast('現在地を取得できませんでした')},{enableHighAccuracy:true,timeout:12000,maximumAge:5000});
@@ -398,7 +398,7 @@ function apCmd(ex,cb){
   if(!VEH.on&&!AKR.linked()){toast('先にナビと連携してください');return}
   var cid=rid(8),done=false,m={t:'cmd',from:'key',kid:S.self.id,cid:cid,action:'park'};
   for(var q in ex)m[q]=ex[q];
-  pend[cid]=function(a){if(done)return;done=true;cb(a)};
+  pend[cid]=function(a){if(done)return;done=true;if(a.ok&&!a.pk)a={ok:false,reason:'ナビのファイルが古いようです。最新に差し替えてください'};cb(a)};
   $('apSt').textContent='ナビに送っています…';tx(m);
   setTimeout(function(){if(done)return;done=true;delete pend[cid];$('apSt').textContent='車から応答がありません'},(AKR.linked()?30000:8000))}
 $('apMDemo').onclick=function(){AP.mode='demo';apSel(['apMDemo','apMCam'],'apMDemo');$('apLotRow').style.display='none';$('apPrep').textContent='駐車場を開く'};
@@ -426,7 +426,7 @@ window.__pkSync=function(pl,cb){
   if(!S.enabled||(!VEH.on&&!AKR.linked())){cb();return}
   var cid=rid(8),done=false,m={t:'cmd',from:'key',kid:S.self.id,cid:cid,action:'park',step:'demo'};
   for(var q in pl)m[q]=pl[q];
-  pend[cid]=function(a){if(done)return;done=true;toast(a.ok?'ナビも同じ条件で始めました':(a.reason||'ナビでは始められませんでした'));cb()};
+  pend[cid]=function(a){if(done)return;done=true;toast(a.ok&&a.pk?'ナビも同じ条件で始めました':(a.ok?'ナビのファイルが古いようです。最新に差し替えてください':(a.reason||'ナビでは始められませんでした')));cb()};
   tx(m);
   setTimeout(function(){if(done)return;done=true;delete pend[cid];toast('ナビから返事がないため、キーだけで始めます');cb()},(AKR.linked()?9000:3000))};
 
