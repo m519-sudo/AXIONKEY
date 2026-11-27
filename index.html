@@ -384,7 +384,7 @@ $('bSummon').onclick=function(){
     toast('現在地を取得しています');
     navigator.geolocation.getCurrentPosition(function(p){
       var cid=rid(8),done=false;
-      pend[cid]=function(a){if(done)return;done=true;if(a.ok){toast('車がこちらに向かっています');log('車を呼びました');if(a.lat!=null)window.openLive(a.lat,a.lon,p.coords.latitude,p.coords.longitude)}else{toast(a.reason||'車を呼べませんでした');log('車を呼べませんでした：'+(a.reason||'不明'))}};
+      pend[cid]=function(a){if(done)return;done=true;if(a.ok){toast('車がこちらに向かっています');log('車を呼びました');if(a.lat!=null)window.openLive(a.lat,a.lon,p.coords.latitude,p.coords.longitude);else toast('車の位置が届いていません。ナビのファイルも最新に差し替えてください')}else{toast(a.reason||'車を呼べませんでした');log('車を呼べませんでした：'+(a.reason||'不明'))}};
       tx({t:'cmd',from:'key',kid:S.self.id,cid:cid,action:'summon',lat:p.coords.latitude,lng:p.coords.longitude});
       setTimeout(function(){if(done)return;done=true;delete pend[cid];toast('車から応答がありません')},(AKR.linked()?25000:6000));
     },function(){toast('現在地を取得できませんでした')},{enableHighAccuracy:true,timeout:12000,maximumAge:5000});
@@ -423,69 +423,233 @@ $('apGo').onclick=function(){
 $('apStop').onclick=function(){apCmd({step:'stop'},function(a){$('apSt').textContent=a.ok?'中止しました':(a.reason||'中止できませんでした')});$('apSlots').innerHTML='';$('apGoBox').style.display='none'};
 
 (function(){
-var PXM=13.1,PI=Math.PI,WM=300/PXM,HM=215/PXM,CAR_L=2.5,ROH=0.8,CW=1.7,CL=CAR_L+ROH+0.75,CC=CL/2-ROH;
-var START={x:188/PXM,y:198/PXM,phi:-PI/2},W1={x:150/PXM,y:88/PXM,phi:PI},W2={x:104.5/PXM,y:100/PXM,phi:PI/2},LANE=90/PXM,XC=188/PXM;
-var SL=[];
-(function(){function add(id,r,din){SL.push({id:id,x0:r[0]/PXM,y0:r[1]/PXM,x1:r[2]/PXM,y1:r[3]/PXM,din:din})}
- for(var i=0;i<9;i++){var x0=2+32.8*i;add(i+1,[x0,1.2,x0+32.8,68],[0,-1])}
- [[15,111.75,144.25],[14,144.25,177.25],[13,177.25,210]].forEach(function(a){add(a[0],[3.5,a[1],70.75,a[2]],[-1,0])});
- [[10,111.75,143.75],[11,143.75,176.5],[12,176.5,209.5]].forEach(function(a){add(a[0],[230.5,a[1],297.5,a[2]],[1,0])});
- SL.forEach(function(s){s.cx=(s.x0+s.x1)/2;s.cy=(s.y0+s.y1)/2;s.mx=s.din[0]===0?s.cx:(s.din[0]>0?s.x0:s.x1);s.my=s.din[1]===0?s.cy:(s.din[1]<0?s.y1:s.y0)})})();
-function hm(a,ta,b,tb,n){var o=[];for(var i=1;i<=n;i++){var u=i/n,u2=u*u,u3=u2*u,h1=2*u3-3*u2+1,h2=3*u2-2*u3,h3=u3-2*u2+u,h4=u3-u2;o.push({x:h1*a.x+h2*b.x+h3*ta.x+h4*tb.x,y:h1*a.y+h2*b.y+h3*ta.y+h4*tb.y})}return o}
-function chain(pts,P,dir){for(var k=0;k<P.length-1;k++){var a=P[k],b=P[k+1],d=Math.hypot(b.x-a.x,b.y-a.y)*1.1;
- hm(a,{x:Math.cos(a.phi)*d*dir,y:Math.sin(a.phi)*d*dir},b,{x:Math.cos(b.phi)*d*dir,y:Math.sin(b.phi)*d*dir},28).forEach(function(p){p.dir=dir;pts.push(p)})}}
-function plan(sl,method){
- var front=method==='front',h=Math.atan2(front?sl.din[1]:-sl.din[1],front?sl.din[0]:-sl.din[0]);
- var F={x:sl.cx-Math.cos(h)*CC,y:sl.cy-Math.sin(h)*CC,phi:h},pts=[{x:START.x,y:START.y,dir:1}],S,P;
- if(sl.din[1]<0){
-  if(sl.mx<=XC+0.5){S=(front&&sl.mx+4.5>XC-1.2)?{x:XC,y:LANE+1.5,phi:-PI/2}:{x:front?sl.mx+4.5:sl.mx-3,y:LANE,phi:PI}}
-  else{S=(front&&sl.mx-4.5<XC+1.2)?{x:XC,y:LANE+1.5,phi:-PI/2}:{x:front?sl.mx-4.5:sl.mx+3,y:LANE,phi:0}}
-  P=[START,S];
- }else if(sl.din[0]<0){
-  S={x:W2.x,y:front?Math.max(sl.my-4.5,W2.y):sl.my+3,phi:PI/2};P=S.y>W2.y+0.2?[START,W1,W2,S]:[START,W1,W2];S=P[P.length-1];
- }else{
-  S={x:XC,y:front?Math.min(sl.my+4.5,START.y):sl.my-3,phi:-PI/2};P=S.y<START.y-0.1?[START,S]:[START];S=P[P.length-1];
- }
- if(P.length>1)chain(pts,P,1);
- if(front)chain(pts,[S,F],1);else chain(pts,[S,F],-1);
- var s=0;pts[0].s=0;pts[0].phi=START.phi;
- for(var i=1;i<pts.length;i++){var dx=pts[i].x-pts[i-1].x,dy=pts[i].y-pts[i-1].y;s+=Math.hypot(dx,dy);pts[i].s=s;pts[i].phi=Math.atan2(dy,dx)+(pts[i].dir<0?PI:0)}
- pts[0].dir=pts[1]?pts[1].dir:1;pts.total=s;return pts}
-var OV=null;
+const PI=Math.PI,TWO=Math.PI*2;
+const PXM = 13.1;                                                   // 画像の13.1ピクセル = 1メートル(駐車枠の幅2.5m)
+      const W_M = 300 / PXM, H_M = 215 / PXM;                             // 駐車場の大きさ(m)
+      const CAR_L = 2.5, REAR_OH = 0.8, FRONT_OH = 0.75, CAR_W = 1.7, CAR_LEN = CAR_L + REAR_OH + FRONT_OH;
+      const R = CAR_L / Math.tan(36 * PI / 180);                          // いっぱいに切ったときの回転半径(約3.4m)
+      const SLOT_D = 66.8 / PXM, Y_END = 0.6, Y_FWD = 3.05;               // 枠の奥行き・バックの切り込み終わり・前向きの切り込み終わり
+      const V_F = 2.2, V_R = 1.2;                                         // 前進・バック(や慎重な動き)の速さ(m/秒)
+      const START_PERP = { x: 188 / PXM, y: 198 / PXM, phi: -PI / 2 }; let START = START_PERP;         // 駐車場に入ってきた位置(右の通路の下・上向き)
+      const WPS = [{ x: 150 / PXM, y: 88 / PXM, phi: PI }, { x: 104.5 / PXM, y: 100 / PXM, phi: PI / 2 }];   // 通り道の目印(上の通路を左へ・左の通路を下へ)
+      let AVM_W = 640, AVM_H = 459; const CAM_W = 256, CAM_H = 160;
+      const WORLD_PX = 1280;                                              // 地面の絵の細かさ(横ピクセル)
+      const K = WORLD_PX / W_M;
+      
+
+      /* ---------- 駐車枠(画像の番号1〜15) ---------- */
+      const PERP_SLOTS = []; let SLOTS = PERP_SLOTS; const PARA_SLOTS = []; let LOT = 'perp';
+      (function () {
+        const add = (id, r, m, din, alpha) => SLOTS.push({ id: id, x0: r[0] / PXM, y0: r[1] / PXM, x1: r[2] / PXM, y1: r[3] / PXM, mx: m[0] / PXM, my: m[1] / PXM, din: din, alpha: alpha });
+        for (let i = 0; i < 9; i++) { const x0 = 2 + 32.8 * i; add(i + 1, [x0, 1.2, x0 + 32.8, 68], [x0 + 16.4, 68], [0, -1], 0); }
+        [[15, 111.75, 144.25], [14, 144.25, 177.25], [13, 177.25, 210]].forEach(([id, a, b]) => add(id, [3.5, a, 70.75, b], [70.75, (a + b) / 2], [-1, 0], -PI / 2));
+        [[10, 111.75, 143.75], [11, 143.75, 176.5], [12, 176.5, 209.5]].forEach(([id, a, b]) => add(id, [230.5, a, 297.5, b], [230.5, (a + b) / 2], [1, 0], PI / 2));
+      })();
+
+      /* ---------- 縦列駐車の道(左側通行・左のはしに駐車枠) ---------- */
+      const Y_LANE = 7.2, Y_BAY = 10.3, BAY_L = 7.0, BAY_D = 2.6, PARA_X0 = 8.0, PARA_N = 2, START_PARA = { x: W_M - 1.6, y: Y_LANE, phi: PI };
+      for (let i = 0; i < PARA_N; i++) { const x0 = PARA_X0 + BAY_L * i, x1 = x0 + BAY_L; PARA_SLOTS.push({ id: i + 1, x0: x0, y0: Y_BAY - BAY_D / 2, x1: x1, y1: Y_BAY + BAY_D / 2, mx: (x0 + x1) / 2, my: Y_BAY - BAY_D / 2, din: [0, 1], alpha: 0, pk: { cx: (x0 + x1) / 2, cy: Y_BAY, phi: PI } }); }
+      function setLot(l) { LOT = l; SLOTS = l === 'para' ? PARA_SLOTS : PERP_SLOTS; START = l === 'para' ? START_PARA : START_PERP; }
+
+      /* ---------- 図形の当たり判定 ---------- */
+      function rectPoly(cx, cy, phi, hl, hw) {
+        const ux = Math.cos(phi), uy = Math.sin(phi), vx = -uy, vy = ux;
+        return [[-hl, -hw], [hl, -hw], [hl, hw], [-hl, hw]].map(([a, b]) => [cx + ux * a + vx * b, cy + uy * a + vy * b]);
+      }
+      function polyHit(A, B) {
+        for (const poly of [A, B]) for (let i = 0; i < 4; i++) {
+          const [x1, y1] = poly[i], [x2, y2] = poly[(i + 1) % 4], nx = -(y2 - y1), ny = x2 - x1;
+          let a0 = 1e9, a1 = -1e9, b0 = 1e9, b1 = -1e9;
+          for (const [x, y] of A) { const d = x * nx + y * ny; if (d < a0) a0 = d; if (d > a1) a1 = d; }
+          for (const [x, y] of B) { const d = x * nx + y * ny; if (d < b0) b0 = d; if (d > b1) b1 = d; }
+          if (a1 < b0 || b1 < a0) return false;
+        }
+        return true;
+      }
+      function carPoly(p, margin) {
+        const c = CAR_LEN / 2 - REAR_OH;
+        return rectPoly(p.x + Math.cos(p.phi) * c, p.y + Math.sin(p.phi) * c, p.phi, CAR_LEN / 2 + margin, CAR_W / 2 + margin);
+      }
+      function parkedPoly(sl) {
+        if (sl.pk) return rectPoly(sl.pk.cx, sl.pk.cy, sl.pk.phi, CAR_LEN / 2, CAR_W / 2);
+        const d = 0.45 + CAR_LEN / 2;
+        return rectPoly(sl.mx + sl.din[0] * d, sl.my + sl.din[1] * d, Math.atan2(sl.din[1], sl.din[0]), CAR_LEN / 2, CAR_W / 2);
+      }
+
+      /* ---------- 道すじ(まっすぐ・円弧のつなぎ) ---------- */
+      // 部品: { len(m), k(曲がり: +1/Rで右・-1/Rで左・0でまっすぐ), dir(+1前進 / -1バック) }
+      function integ(p, pr, s) {
+        const phi = p.phi + pr.dir * pr.k * s;
+        if (Math.abs(pr.k) < 1e-9) return { x: p.x + pr.dir * s * Math.cos(p.phi), y: p.y + pr.dir * s * Math.sin(p.phi), phi: p.phi };
+        return { x: p.x + (Math.sin(phi) - Math.sin(p.phi)) / pr.k, y: p.y - (Math.cos(phi) - Math.cos(p.phi)) / pr.k, phi: phi };
+      }
+      function buildPath(start, prims) {
+        const starts = [], cum = [0]; let p = { x: start.x, y: start.y, phi: start.phi };
+        prims.forEach((pr) => { starts.push(p); p = integ(p, pr, pr.len); cum.push(cum[cum.length - 1] + pr.len); });
+        return { start: start, prims: prims, starts: starts, cum: cum, total: cum[cum.length - 1] };
+      }
+      function poseAt(path, s) {
+        s = Math.max(0, Math.min(path.total, s));
+        let i = 0; while (i < path.prims.length - 1 && s > path.cum[i + 1]) i++;
+        const pr = path.prims[i], q = integ(path.starts[i], pr, s - path.cum[i]);
+        q.dir = pr.dir; q.idx = i; return q;
+      }
+      const mod2pi = (a) => { a %= TWO; return a < 0 ? a + TWO : a; };
+      function dubins(s, e) {                                              // 前進だけで、いちばん短い「曲がる→まっすぐ→曲がる」
+        const x0 = s.x, y0 = -s.y, p0 = -s.phi, x1 = e.x, y1 = -e.y, p1 = -e.phi;   // 画面(下がプラス)→数学の向きに直す
+        const dx = x1 - x0, dy = y1 - y0, d = Math.hypot(dx, dy) / R, th = mod2pi(Math.atan2(dy, dx));
+        const a = mod2pi(p0 - th), b = mod2pi(p1 - th), sa = Math.sin(a), sb = Math.sin(b), ca = Math.cos(a), cb = Math.cos(b), cab = Math.cos(a - b);
+        const c = []; let ps, t1, p;
+        ps = 2 + d * d - 2 * cab + 2 * d * (sa - sb); if (ps >= 0) { t1 = Math.atan2(cb - ca, d + sa - sb); c.push({ w: 'LSL', t: mod2pi(-a + t1), p: Math.sqrt(ps), q: mod2pi(b - t1) }); }
+        ps = 2 + d * d - 2 * cab + 2 * d * (sb - sa); if (ps >= 0) { t1 = Math.atan2(ca - cb, d - sa + sb); c.push({ w: 'RSR', t: mod2pi(a - t1), p: Math.sqrt(ps), q: mod2pi(-b + t1) }); }
+        ps = -2 + d * d + 2 * cab + 2 * d * (sa + sb); if (ps >= 0) { p = Math.sqrt(ps); t1 = Math.atan2(-ca - cb, d + sa + sb) - Math.atan2(-2, p); c.push({ w: 'LSR', t: mod2pi(-a + t1), p: p, q: mod2pi(-mod2pi(b) + t1) }); }
+        ps = -2 + d * d + 2 * cab - 2 * d * (sa + sb); if (ps >= 0) { p = Math.sqrt(ps); t1 = Math.atan2(ca + cb, d - sa - sb) - Math.atan2(2, p); c.push({ w: 'RSL', t: mod2pi(a - t1), p: p, q: mod2pi(b - t1) }); }
+        if (!c.length) return null;
+        c.sort((u, v) => (u.t + u.p + u.q) - (v.t + v.p + v.q));
+        const w = c[0], kk = (ch) => (ch === 'L' ? -1 : 1) / R;           // 数学のL(左回り)=画面では左折=k<0
+        const out = [{ len: w.t * R, k: kk(w.w[0]), dir: 1 }, { len: w.p * R, k: 0, dir: 1 }, { len: w.q * R, k: kk(w.w[2]), dir: 1 }];
+        return out.filter((u) => u.len > 1e-6);
+      }
+
+      /* ---------- 駐車の計画 ---------- */
+      function localToWorld(sl, f, lx, ly) { const x = f * lx, y = ly, c = Math.cos(sl.alpha), s = Math.sin(sl.alpha); return { x: sl.mx + x * c - y * s, y: sl.my + x * s + y * c }; }
+      function headingToWorld(sl, f, phi) { const x = f * Math.cos(phi), y = Math.sin(phi), c = Math.cos(sl.alpha), s = Math.sin(sl.alpha); return Math.atan2(x * s + y * c, x * c - y * s); }
+      function planFor(sl, method, f, chain, parked) {
+        const back = method === 'back';
+        const lp = back ? { x: -R, y: Y_END + R } : { x: R, y: Y_FWD + R };    // 止まって切り始める場所(枠の座標)
+        const p0w = localToWorld(sl, f, lp.x, lp.y), p0 = { x: p0w.x, y: p0w.y, phi: headingToWorld(sl, f, PI) };
+        const yFinal = back ? -(SLOT_D - 0.4 - REAR_OH) : -(SLOT_D - 0.4 - (CAR_L + FRONT_OH));
+        const dir = back ? -1 : 1, kf = f / R;
+        const fin = [{ len: R * PI / 2, k: kf, dir: dir }, { len: (back ? Y_END : Y_FWD) - yFinal, k: 0, dir: dir }];
+        let prims = [], cur = START;
+        for (const wi of chain.concat([-1])) {
+          const tgt = wi < 0 ? p0 : WPS[wi], leg = dubins(cur, tgt);
+          if (!leg) return null; prims = prims.concat(leg); cur = tgt;
+        }
+        const LA = prims.reduce((a, u) => a + u.len, 0);
+        const path = buildPath(START, prims.concat(fin));
+        path.LA = LA; path.LB = fin[0].len; path.method = method; path.slot = sl; path.f = f; path.steer = kf > 0 ? '右' : '左';
+        // 通れるか(ほかの車・壁にぶつからないか)
+        for (let s = 0; s <= path.total + 1e-9; s += 0.12) {
+          const q = poseAt(path, s), poly = carPoly(q, 0.06);
+          for (const [x, y] of poly) if (x < 0.3 || x > W_M - 0.3 || y < 0.3 || y > H_M - 0.3) return null;
+          for (const pk of parked) if (polyHit(poly, pk)) return null;
+        }
+        return path;
+      }
+      function hitsAny(path, parked) {
+        for (let s = 0; s <= path.total + 1e-9; s += 0.12) {
+          const q = poseAt(path, s), poly = carPoly(q, 0.06);
+          for (const [x, y] of poly) if (x < 0.3 || x > W_M - 0.3 || y < 0.3 || y > H_M - 0.3) return true;
+          for (const pk of parked) if (polyHit(poly, pk)) return true;
+        }
+        return false;
+      }
+      function planPara(sl, parked) {                                      // 縦列: 前に出て止まる → 左に切ってバック → 右に切り返してバック
+        const yb = (sl.y0 + sl.y1) / 2, xc = (sl.x0 + sl.x1) / 2, c = CAR_LEN / 2 - REAR_OH, d = yb - Y_LANE, ct = 1 - d / (2 * R);
+        if (ct < -1 || ct > 1) return null;
+        const th = Math.acos(ct), fin = { x: xc + c, y: yb }, p0x = fin.x - 2 * R * Math.sin(th), lenA = START_PARA.x - p0x;
+        if (lenA < 0.3) return null;
+        const path = buildPath(START_PARA, [{ len: lenA, k: 0, dir: 1 }, { len: R * th, k: -1 / R, dir: -1 }, { len: R * th, k: 1 / R, dir: -1 }]);
+        path.LA = lenA; path.LB = R * th; path.method = 'back'; path.kind = 'para'; path.slot = sl; path.f = -1; path.steer = '左';
+        return hitsAny(path, parked) ? null : path;
+      }
+      function planFront(sl, parked) {                                     // 前向き: 通路で向きを合わせてから、まっすぐ前に入れる
+        let best = null;
+        for (const lead of [0.6, 1.8, 3.2]) for (const chain of [[], [0], [1], [0, 1]]) {
+          const w = localToWorld(sl, 1, 0, Y_FWD + lead), p1 = { x: w.x, y: w.y, phi: headingToWorld(sl, 1, -PI / 2) };
+          let prims = [], cur = START, ok = true;
+          for (const wi of chain.concat([-1])) { const tgt = wi < 0 ? p1 : WPS[wi], leg = dubins(cur, tgt); if (!leg) { ok = false; break; } prims = prims.concat(leg); cur = tgt; }
+          if (!ok) continue;
+          const LA = prims.reduce((a, u) => a + u.len, 0), yFinal = -(SLOT_D - 0.4 - (CAR_L + FRONT_OH));
+          const path = buildPath(START, prims.concat([{ len: lead, k: 0, dir: 1 }, { len: Y_FWD - yFinal, k: 0, dir: 1 }]));
+          path.LA = LA; path.LB = lead; path.method = 'front'; path.slot = sl; path.f = 1; path.steer = '右';
+          if (hitsAny(path, parked)) continue;
+          if (!best || path.total < best.total) best = path;
+        }
+        return best;
+      }
+      function bestPlan(sl, method, parked) {
+        if (LOT === 'para') return method === 'back' ? planPara(sl, parked) : null;
+        if (method === 'front') { const nf = planFront(sl, parked); if (nf) return nf; }
+        let best = null;
+        for (const f of [1, -1]) for (const chain of [[], [0], [1], [0, 1]]) {
+          const p = planFor(sl, method, f, chain, parked);
+          if (p && (!best || p.total < best.total)) best = p;
+        }
+        return best;
+      }
+      function makeScenario(lot) {
+        if (lot) setLot(lot);
+        let S = null;
+        for (let tries = 0; tries < 12; tries++) {
+          const occ = SLOTS.map(() => Math.random() < (LOT === 'para' ? 0.4 : 0.45));
+          if (LOT === 'para' && occ.every(Boolean)) occ[(Math.random() * occ.length) | 0] = false;
+          const parked = [], cols = ['#94a3b8', '#fca5a5', '#93c5fd', '#fcd34d', '#a7f3d0', '#c4b5fd', '#e5e7eb', '#475569'];
+          SLOTS.forEach((sl, i) => { if (occ[i]) parked.push(parkedPoly(sl)); });
+          const opts = SLOTS.map((sl, i) => (occ[i] ? null : { back: bestPlan(sl, 'back', parked), front: bestPlan(sl, 'front', parked) }));
+          const n = opts.filter((o) => o && (o.back || o.front)).length;
+          S = { occ: occ, cols: SLOTS.map(() => cols[(Math.random() * cols.length) | 0]), parked: parked, opts: opts, n: n };
+          S.cars = []; SLOTS.forEach((sl, i) => { if (!occ[i]) return; const pg = parkedPoly(sl); S.cars.push({ cx: (pg[0][0] + pg[2][0]) / 2, cy: (pg[0][1] + pg[2][1]) / 2, phi: sl.pk ? sl.pk.phi : Math.atan2(sl.din[1], sl.din[0]), col: S.cols[i] }); });
+          if (n >= (LOT === 'para' ? 1 : 4)) break;
+        }
+        S.lot = LOT; S.stage = 'scan'; S.t = 0; S.running = false; S.s = 0; S.pause = 0; S.sel = -1; S.method = ''; S.plan = null; S.blend = 0; S.camRot = 0; S.notice = ''; S.noticeT = 0;
+        return S;
+      }
+
+      
+let OV=null;
 window.openPark=function(){
  if(OV)return;
- var img=new Image(),occ=[],cols=[],sel=-1,method='back',pts=null,s=0,raf=0,last=0,state='pick',pose=null,free=0;
- var pal=['#94a3b8','#fca5a5','#93c5fd','#fcd34d','#a7f3d0','#c4b5fd','#e5e7eb','#64748b'];
- function scenario(){do{occ=SL.map(function(){return Math.random()<0.45});free=occ.filter(function(o){return !o}).length}while(free<4);cols=SL.map(function(){return pal[(Math.random()*pal.length)|0]});sel=-1;pts=null;s=0;pose=null;state='pick'}
- scenario();
+ setLot('perp');
+ const img=new Image();
+ let G=makeScenario('perp'),sel=-1,method='back',plan=null,state='pick',stage='',s=0,pause=0,tm=0,raf=0,last=0,pose=null;
  OV=document.createElement('div');
  OV.style.cssText='position:fixed;inset:0;z-index:300;background:#05080d;color:#eef2f8;display:flex;flex-direction:column;overflow:auto;padding:env(safe-area-inset-top,0px) 14px calc(env(safe-area-inset-bottom,0px) + 14px)';
  OV.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0"><b>自動駐車（デモ）</b><button class="btn ghost" id="pkX" style="flex:none;padding:8px 16px">閉じる</button></div><div id="pkMsg" style="margin:0 0 10px;min-height:44px"></div><canvas id="pkCv" width="900" height="645" style="width:100%;border-radius:14px;background:#111"></canvas><div class="row" style="margin-top:12px"><button class="btn ghost" id="pkB">後ろから</button><button class="btn ghost" id="pkF">前から</button></div><div class="row" style="margin-top:10px"><button class="btn" id="pkGo">スタート</button><button class="btn ghost" id="pkRe" style="flex:none">場所を変える</button></div>';
  document.body.appendChild(OV);
- var cv=OV.querySelector('#pkCv'),msg=OV.querySelector('#pkMsg');
- function say(t){msg.textContent=t}
- function mark(){OV.querySelector('#pkB').style.outline=method==='back'?'2px solid #2f8cff':'';OV.querySelector('#pkF').style.outline=method==='front'?'2px solid #2f8cff':''}
- function rect(c,k,cx,cy,phi,col,tail){c.save();c.translate(cx*k,cy*k);c.rotate(phi);c.fillStyle=col;c.strokeStyle='#0b1220';c.lineWidth=2;c.fillRect(-CL/2*k,-CW/2*k,CL*k,CW*k);c.strokeRect(-CL/2*k,-CW/2*k,CL*k,CW*k);
-  c.fillStyle='rgba(15,23,42,.65)';c.fillRect(-CL*0.12*k,-CW*0.36*k,CL*0.34*k,CW*0.72*k);c.fillStyle='#fde047';c.fillRect(CL/2*k-3,-CW/2*k+2,3,CW*0.2*k);c.fillRect(CL/2*k-3,CW/2*k-2-CW*0.2*k,3,CW*0.2*k);c.fillStyle='#ef4444';c.fillRect(-CL/2*k,-CW/2*k+2,3,CW*0.2*k);c.fillRect(-CL/2*k,CW/2*k-2-CW*0.2*k,3,CW*0.2*k);c.restore()}
- function draw(){var c=cv.getContext('2d'),k=cv.width/WM;c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,cv.width,cv.height);if(img.complete)c.drawImage(img,0,0,cv.width,cv.height);
-  SL.forEach(function(sl,i){if(occ[i]){rect(c,k,sl.cx,sl.cy,Math.atan2(sl.din[1],sl.din[0]),cols[i])}
-   else{c.strokeStyle=sel===i?'#2f8cff':'rgba(47,140,255,.85)';c.lineWidth=sel===i?5:2;c.strokeRect(sl.x0*k,sl.y0*k,(sl.x1-sl.x0)*k,(sl.y1-sl.y0)*k);if(sel===i){c.fillStyle='rgba(47,140,255,.28)';c.fillRect(sl.x0*k,sl.y0*k,(sl.x1-sl.x0)*k,(sl.y1-sl.y0)*k)}
-    c.fillStyle='#fff';c.strokeStyle='#0b1220';c.lineWidth=4;c.font='bold '+Math.round(k*0.85)+'px sans-serif';c.textAlign='center';c.textBaseline='middle';c.strokeText(sl.id,sl.cx*k,sl.cy*k);c.fillText(sl.id,sl.cx*k,sl.cy*k)}});
-  var p=pose||START;rect(c,k,p.x+Math.cos(p.phi)*CC,p.y+Math.sin(p.phi)*CC,p.phi,'#f8fafc')}
- function at(sv){var a=0,b=pts.length-1;while(b-a>1){var m=(a+b)>>1;if(pts[m].s<=sv)a=m;else b=m}var p=pts[a],q=pts[b],u=q.s>p.s?(sv-p.s)/(q.s-p.s):0;return{x:p.x+(q.x-p.x)*u,y:p.y+(q.y-p.y)*u,phi:q.phi,dir:q.dir}}
- function loop(t){if(!OV)return;var dt=Math.min(.1,(t-last)/1000);last=t;
-  if(state==='run'){var pp=at(s);s=Math.min(pts.total,s+(pp.dir<0?1.8:3.2)*dt);pose=at(s);
-   say(pose.dir<0?'リバースに入ります。車両周辺を直接確認してください。':'ドライブです。前進します。');
-   if(s>=pts.total){state='done';say('オートパークを完了しました。')}}
-  draw();raf=requestAnimationFrame(loop)}
- img.onload=draw;img.src='data:image/jpeg;base64,data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBw4HBhMIBxMQExAVGBEbFRUYEBIQIBAWIBMXFiAUGBgaKDQsJCYxJx8ZLT0iJjA3LjUuFys/OD8uQDQuLi4BCgoKDQ0NGA8PGDQdFR0uLS0rKysrKy0rKystNy0rKysrKysrKysrKysrNysrKysrKysrKysrKysrKysrKysrK//AABEIANcBLAMBIgACEQEDEQH/xAAaAAEBAAMBAQAAAAAAAAAAAAAABAEDBQIG/8QARRAAAQMAAg0JBgUDBAMBAAAAAAECAwQRBRITFCFRUlNykpOysxUxMzQ1QbHR0gYiYXFzgjKBkaGjI2PwQkPB4oPh8WL/xAAVAQEBAAAAAAAAAAAAAAAAAAAAAf/EABURAQEAAAAAAAAAAAAAAAAAAAAB/9oADAMBAAIRAxEAPwD7qnUtY5U91iqrWKqq2tVVW1rhJ7/XIi1BZPp26Ee4hIBXf65EWoL/AFyItQxPWtCjVUqwvSu1qr/D+pKB06RSbnBE9rI63Ncq+5/+3J4IT3+uRHqGaZ1SDQdxXkYFd/rkR6gv92RFqHqhq+OJZHW1z95LXnSR1XNV/wA93zIgOm6lqygNla2JFV0iL/TauBGsXv8Ampo5Rfii2MfkYl7Lj05d2MkAs5RfkxbGPyMcovyYtjH5Hqx6vtrn71qttUn+lVqw23wIgOm2mOWgOltYrZHxoi3JnMrXqvd8ENHKMmKLYx+RhnZT/qRbshIBZyjJii2MfkOUZMUWxj8j3Y1rbdMLbZbZKlRcCWvy/wDlRCvOB06NS1lo8rpGxKrWtVP6bEw27U7vmTX+uRFqHqg9Un0G8RhEBXf65EWoL/XIi1DzQ5bk5yojlrSqtuBW+8mGv9vzPNNYrKQqOVVX3VrXnwtRal+Pd+QFlCpN2mVr2R1Wsi/g70Y5fFCe/wBciPUFjOsLoTcJxIBXf7siLUF/rkR6higIlu5yoqqjVVqJVXXWnNX8K/0PNNbVIj1Vy2yIvvYVT4L/AJzKBXY+lXanMjeyOpzmovuY1NPKT8mHZMPNie04tNniSgWcpPyYdkwcpPyYdkwkY5WvRY66+6rGUU6RVckL1rVvOvP7y8+HF3fkBtisi50iNVkNSqn+0zGe6ZTnRUx8bGxVNc5E/ox8yOqxEMHTN+aeJssj2jLpv3lA2coyYotjH5DlGTFFsY/I00NLalsRERfebgXmXDzKb6atvA17VcqWz0978Xdgr70/5VQMcoyYotjH5Fdk6YtHp7oYmQ2qVVf0mL3IclC2znaknzTdQDHKT8iHZMHKT8iHZMJ6M9GUhr5ErRFStKq/2UopnV2K9Vc5VfhVKltfdq58NVdYDlJ+RDsmeRVSKbLBIiQOVqK2N1Se6laxtVakOQdCm9I3Qh4bSpWqyfTt0I9xCQrsn07dCPcQkIrKvVW1Kq1YqzAAFlM6pBoO4ryMspnVINB3FeRgemvc3A1VT8zyABXL2XHpy7sZIVy9lx6cu7GSAekeqMtUVal50rPIAFbOyn/Ui3ZCQrZ2U/6kW7ISAZMAAW0Hqk+g3iMIi2g9Un0G8RhEBlr1YtbFVF+C1BcOFTAArsZ1hdCbhOJCuxnWF0JuE4kAyiq1a284VVctbsKmABXYntOLTZ4kpVYntOLTZ4koDm5jAAGyDpm/NPE2WR7Rl037ymuDpm/NPE2WR7Rl037ygTmXPV61vVV+a1mABlC2znaknzTdQiQts52pJ803UAiTBhQOcr3WzlVVxrhMAAX03pG6EPDaQHQpvSN0IeG0JWqyfTt0I9xCQrsn07dCPcQkCgAAspnVINB3FeRllM6pBoO4ryMAAAK5ey49OXdjJCuXsuPTl3YyQAAAK2dlP+pFuyEhWzsp/wBSLdkJAAAAtoPVJ9BvEYRFtB6pPoN4jCIAAAK7GdYXQm4TiQrsZ1hdCbhOJAAAArsT2nFps8SUqsT2nFps8SUDAAA2QdM35p4myyPaMum/eU1wdM35p4myyPaMum/eUCcAAZQts52pJ803UIkLbOdqSfNN1AIQAAL6b0jdCHhtIDoU3pG6EPDaErVZPp26Ee4hIV2T6duhHuISBQAAWUzqkGg7ivIyymdUg0HcV5GAAAFcvZcenLuxkhXL2XHpy7sZIAAAFbOyn/Ui3ZCQrZ2U/wCpFuyEgAAAW0Hqk+g3iMIi2g9Un0G8RhEAAAFdjOsLoTcJxIV2M6wuhNwnEgAAAV2J7Ti02eJKVWJ7Ti02eJKBgAAbIOmb808TZZHtGXTfvKa4Omb808TZZHtGXTfvKBOAAMoW2c7Uk+abqESFtnO1JPmm6gEIAAF9N6RuhDw2kBfTekboQ8NoSk6wTuRz3vaqNaipc0XCiVc9ZruVHzr9inqJXfiX8zAVXcqPnX7FPULlR86/Yp6iQAdCZaPLEyO6SJaIqdEmGtznZXxNVyo+cfsU9RIAK7lR84/Yp6hcqPnH7FPUSADoOdR1orYLeTA5613JvejUyvh+5ptKNly7FvqJQBVaUbLl2LfULSjZcuxb6iUAdBr6OlFdBbS4XNWu5N7kclX4vj+xqtKNly7JvqJABXaUbLl2TfULSjZcuyb6iQAdGB9HiifGj5PfREruTcFTkdlfA03Kj51+x/7EgAruVHzr9j/2Fyo+dfsf+xIAOhRlo8Eivuj1ra9OiROdqtyviarlR84/Yp6iQAV3Kj5x+xT1C5UfOP2KeokAHQoi0ej0ps10kW1VFquSJXUteUa7lRs5LsW+ojAFlyo2cl2LfULlRs5LsW+ojAFrGUZj0ddJcCovQt9R6pC0aekOmt5UtlctVyatVa15RAAK7SjZcuyb6haUbLl2TfUSACu0o2XLsm+oopr6NS6U6e3kSurBckWrBVlHMAFlyo2ck2KeoXKjZyTYp6iMAWXKjZyTYp6jNKlbLLXDXaojERVSpVqYiV1ERti/CErW78S/mYMu/Ev5mAoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAG2L8JqNsX4SxK1u/Ev5mDY2B8qqsbXKla8zVXwPV6S5D9RxFaQbr0lyH6jhekuQ/UcBpBuvSXIfqOF6S5D9RwGkG69Jch+o4XpLkP1HAaQbXUaRqVuY9ETvtVNQAAAAAAAAAAAAAAAAAAAAAAAAAHuKN0r0jiRVVeZESs38m0jNyaigSgq5NpGbk1FHJtIzcmooEoKuTaRm5NRRybSM3JqKBKCrk2kZuTUUcm0jNyaigSm2L8Jt5NpGbk1FPNydC5Y5UVHJ3KlVWBFLErc97mWOZc1VP6k3Mqp/pYTXeSqu2fVpKVtkSKhxvdWqXSaurRYhrvvBc2W9zRrktcarWtaomDnw/kRU98SZT9ZRfEmU/WU1gDZfEmU/WUXxJlP1lNYA2XxJlP1lF8SZT9ZTWALrHyvfM5HucqXObBWq/7biErsb07vpzcJxIAAAAAAAAAKYaBNPHdIWOVuMmPrrA9lM+/fUD5akUd9GfaTtVq89Smo7PtP11ugm844wAAAAduxFgXUtqT0hbVi8yIqKrvIrsl7OumpFdCubWIiJUqr5AfMgsslY59jnoyZWrWlaVVr4kYAAAVWN6z9k3CcTFNjes/ZNwnEoGQYAGQYAGQYKYVY6FGWjnOrcuBasGCru+YE5fTunTQh4TCSkORz/cba1IiKldeFO8qp3TpoQ8JgSsK+5UKN6Ii1SSrUqVouCPnRTVfjlRWqjMKKmBjG8/xRKzZMldjWVZybdjI7VcShWAZtVxKLVcSgYBm1XEotVxKBgGbVcSi1XEoFVjend9ObhOJCyxqKk7vpzcJxGAAAAG2i0Z9LmSGBK3LXUlaJzJX3nqmUSShS3OkJUtVfOi4PyA0AAAfXWC7KZ928p8ifXWB7KZ928oHK9p+ut0E3nHGOx7T9cZoJvOOOAAAFFDp0tCfbUdypjTnRfmh1qNZR9PszE5a28yK1HLU5cK11f5zHBLrB9rR6X/AAB0vbDrUeivifPn0Hth1qPRXxPnwAAAqsb1n7JuE4lK7GIrqXU3CqtlqT/xONd5y5uTUd5AaAb7zlzcmo7yF5y5uTUd5AaAb7zlzcmo7yF5y5uTUd5AaCqGZtwuT3PbhVa2pbW2BOdK0xfueLzlzcmo7yF5y5uTUd5AKVKkqojVctSVVu51wqv/AKKKd06aEPCYT3nLm5NR3kU09FbSKnYFRkPdzf0mhK9x0iWGx7W0VzkV0kuBvf7rKuY8updNYy3c6ZExrbIa3uVtAjdHWipJNUqc6LVGeJJXSw2jUci4VdhwLgxdwV65UpOdk1lHKlJzsmspGALOVKTnZNZRypSc7JrKRgCzlSk52TWUcqUnOyaykYA6lCp8073RzSPc1WTVoq1/7blOWV2N6d305uE4kAAADqezfa7Pk/dU2+1faSaDfFTV7N9rs+T91Tb7V9pJoN8VA4wAAH11geymffvqfIn11geymffvqByfafrjNBN5xxzs+0/XW6CbzjjAAAAK7FzNo9kGTSrU1Fw95IAOv7R06OnTsfRlrREVFwKnf8TkAAAABXYxVbS7ZuBUbLUvxuTjXfs2ck13HuxvWfsm4TiUDffs2ck13C/Zs5JruNAA337NnJNdwv2bOSa7jQAN9+zZyTXcZv2bOSa7icoZOscCMtWqlblrVtfc3B+37gL9mzkmu4psgqupCOdWqqyGtcf9JpHSJVlcjnoiVIiYG2uDuKqd06aEPCYErDnrFQY5I1qVJJVRfjVGaFpkqtVrnvVFwKiuVUqNs3ZrPqTbsZGFAAAAAAAAV2N6d305uE4kK7G9Yd9ObhOJAAAA+j9maAx7kprH4W2yK215lVKuf8yj2jsa2RFpsr7VGtRKrWu2Wtau/wCJxrA0+8aclsvuOwO+GJf8xlHtNZC+aVe8a+4zn+LgOKAAB9dYHspn376nyJ9dYLsln3b6gcr2n663QTeccY7HtP1xmgm8444AAAAAAAAAAAVWN6z9k3CcSlVjes/ZNwnEtQAGQBgGQBg3R0l0cVzZVVWq4Wtdz1J3/I1AD3NM6ZUWRa1RKkwImD8iundOmhDwmEFR0Kd06aEPCYEr02kuo1jW3K1wyS11sa//AEsyjVynL/b2MXke2ORlEjdJzJJP3V4bVlVafM1tpSParJEYiK11dTG1udhqVFRMHdgTBgCs8py/29jF5DlOX+3sYvIiAFvKcv8Ab2MXkOU5f7exi8iIAW8py/29jF5DlOX+3sYvIiAHUodOkne6N9pUsc3NGxq9G5edErOWV2N6d305uE4kAAAAAAAAAH11guymfdvKfIn11geymffvqByvafrrdBN5xxjse0/XGaCbzjjgAAAAAAAAAABZYp6spluzAqNlVFxLc3Dlak5x/wCp5sb1n7JuE4lAs5WpOcf+o5WpOcf+pGALOVqTnH/qOVqTnH/qRgCzlak5x/6jlak5x/6kZvYkVxS6W1tWvMiLgqSrn/MDbytSc4/9TbZF6vpNu5VVVbEqrjW5NIp7StLhbVVYa6uf8iyndOmhDwmBKwrkZQY3PS2RJJa0wpWlUeI03yypUubErRURUt60/Vaj3N2az6k27GRhQAAAAAAAFdjend9ObhOJCuxvTu+nNwnEgAAAAAAAAA+usD2Uz7t5T5E+usD2Uz7t5QOV7T9dboJvOOMdn2n663QTeccYAAAAAAAAAAAKrG9Z+ybhOJSqxvWfsm4TiUAAAAAAFUUrL2SKVOdzlVUTC3A2pUXv78BKAN1ItERrIlrqRa1taq8NZTTunTQh4TCAvp3TpoQ8JgSjnuotdFnjjdaucuG2wLgRcLVTEh5vhMxD/J6gCqXwmYh/k9QvhuYh/k9QAC+EzEP8nqF8NzEP8nqAAXwmYh/k9QvhuYh/k9QABKXaotyiiaqo5K0t60RWqi864iS0XF4AEC0XF4C0XF4ABC0XF4C0XF4ABS0XF4C0XF4ABC0XF4HUoVl5KHRkhaxqoleFVXGq4zAAmsjS30+ZJJGolSVIiL3VrhwktouLwAClouLwFouLwAAWi4vAWi4vAAIWi4vAWi4vAABaLi8BaLi8AANlHe+CW6x1V1Lzoi4KlRcC/Cs3X4/Ih2MfkZBVYvx+RDsY/IX4/Ih2MfkZAGL8fkQ7GPyF+PyIdjH5GQBi/H5EOxj8hfj8iHYx+RkAYvx+RDsY/IphoVIsi1aQiN7k52t5kRKkRABEr//Z';
- cv.onclick=function(e){if(state!=='pick')return;var r=cv.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*WM,y=(e.clientY-r.top)/r.height*HM;
-  for(var i=0;i<SL.length;i++){var sl=SL[i];if(x>=sl.x0&&x<=sl.x1&&y>=sl.y0&&y<=sl.y1){if(occ[i]){say(sl.id+'番には車がいます');return}sel=i;say(sl.id+'番に駐車します。向きを選んで、スタートを押してください。');return}}};
- OV.querySelector('#pkB').onclick=function(){method='back';mark()};
- OV.querySelector('#pkF').onclick=function(){method='front';mark()};
+ const cv=OV.querySelector('#pkCv'),msg=OV.querySelector('#pkMsg');
+ const say=function(t){msg.textContent=t};
+ const mark=function(){OV.querySelector('#pkB').style.outline=method==='back'?'2px solid #2f8cff':'';OV.querySelector('#pkF').style.outline=method==='front'?'2px solid #2f8cff':''};
+ function rect(c,k,cx,cy,phi,col){c.save();c.translate(cx*k,cy*k);c.rotate(phi);c.fillStyle=col;c.strokeStyle='#0b1220';c.lineWidth=2;c.fillRect(-CAR_LEN/2*k,-CAR_W/2*k,CAR_LEN*k,CAR_W*k);c.strokeRect(-CAR_LEN/2*k,-CAR_W/2*k,CAR_LEN*k,CAR_W*k);
+  c.fillStyle='rgba(15,23,42,.65)';c.fillRect(-CAR_LEN*0.12*k,-CAR_W*0.36*k,CAR_LEN*0.34*k,CAR_W*0.72*k);c.fillStyle='#fde047';c.fillRect(CAR_LEN/2*k-3,-CAR_W/2*k+2,3,CAR_W*0.2*k);c.fillRect(CAR_LEN/2*k-3,CAR_W/2*k-2-CAR_W*0.2*k,3,CAR_W*0.2*k);c.fillStyle='#ef4444';c.fillRect(-CAR_LEN/2*k,-CAR_W/2*k+2,3,CAR_W*0.2*k);c.fillRect(-CAR_LEN/2*k,CAR_W/2*k-2-CAR_W*0.2*k,3,CAR_W*0.2*k);c.restore()}
+ function draw(){const c=cv.getContext('2d'),k=cv.width/W_M;c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,cv.width,cv.height);
+  if(img.complete&&img.naturalWidth)c.drawImage(img,0,0,cv.width,cv.height);else{c.fillStyle='#4b5563';c.fillRect(0,0,cv.width,cv.height)}
+  SLOTS.forEach(function(sl,i){if(G.occ[i])return;const o=G.opts[i],ok=!!(o&&(o.back||o.front));
+   c.strokeStyle=!ok?'rgba(148,163,184,.7)':(sel===i?'#2f8cff':'rgba(47,140,255,.85)');c.lineWidth=sel===i?5:2;c.setLineDash(ok?[]:[8,6]);c.strokeRect(sl.x0*k,sl.y0*k,(sl.x1-sl.x0)*k,(sl.y1-sl.y0)*k);c.setLineDash([]);
+   if(sel===i){c.fillStyle='rgba(47,140,255,.28)';c.fillRect(sl.x0*k,sl.y0*k,(sl.x1-sl.x0)*k,(sl.y1-sl.y0)*k)}
+   if(ok){const cx=(sl.x0+sl.x1)/2,cy=(sl.y0+sl.y1)/2;c.fillStyle='#fff';c.strokeStyle='#0b1220';c.lineWidth=4;c.font='bold '+Math.round(k*0.85)+'px sans-serif';c.textAlign='center';c.textBaseline='middle';c.strokeText(sl.id,cx*k,cy*k);c.fillText(sl.id,cx*k,cy*k)}});
+  G.cars.forEach(function(cr){rect(c,k,cr.cx,cr.cy,cr.phi,cr.col)});
+  if(plan){c.fillStyle='rgba(255,255,255,.75)';for(let q=0;q<=plan.total;q+=0.35){const pp=poseAt(plan,q);c.beginPath();c.arc(pp.x*k,pp.y*k,2.2,0,TWO);c.fill()}}
+  const p=pose||START,cc=CAR_LEN/2-REAR_OH;rect(c,k,p.x+Math.cos(p.phi)*cc,p.y+Math.sin(p.phi)*cc,p.phi,'#f8fafc')}
+ function setStage(st){stage=st}
+ function step(dt){
+  if(state!=='run')return;tm+=dt;const rev=plan.method==='back'||plan.kind==='para',vv=rev?V_R:1.6;
+  if(stage==='A'){s+=V_F*dt;if(s>=plan.LA){s=plan.LA;pause=rev?2.4:0.1;setStage('pA')}}
+  else if(stage==='pA'){pause-=dt;if(pause<=0)setStage('B')}
+  else if(stage==='B'){s+=vv*dt;if(s>=plan.LA+plan.LB){s=plan.LA+plan.LB;pause=0.1;setStage('pB')}}
+  else if(stage==='pB'){pause-=dt;if(pause<=0)setStage('C')}
+  else if(stage==='C'){s+=vv*dt;if(s>=plan.total){s=plan.total;state='done';setStage('done')}}
+  pose=poseAt(plan,s);
+  const rv=plan.method==='back'||plan.kind==='para';
+  if(stage==='done')say('オートパークを完了しました。（所要 '+tm.toFixed(1)+' 秒）');
+  else say((stage==='A'?'ドライブです。切り返す位置まで前進します。':stage==='pA'?(rv?'リバースに入ります。車両周辺を直接確認してください。':'前向きで入る位置につきました。'):rv?'バックで駐車枠に入ります。':'前向きで駐車枠に入ります。')+'（'+tm.toFixed(1)+' 秒）')}
+ function loop(t){if(!OV)return;const dt=Math.min(.1,(t-last)/1000);last=t;try{step(dt);draw()}catch(e){}raf=requestAnimationFrame(loop)}
+ img.onload=function(){try{draw()}catch(e){}};img.src='data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBw4HBhMIBxMQExAVGBEbFRUYEBIQIBAWIBMXFiAUGBgaKDQsJCYxJx8ZLT0iJjA3LjUuFys/OD8uQDQuLi4BCgoKDQ0NGA8PGDQdFR0uLS0rKysrKy0rKystNy0rKysrKysrKysrKysrNysrKysrKysrKysrKysrKysrKysrK//AABEIANcBLAMBIgACEQEDEQH/xAAaAAEBAAMBAQAAAAAAAAAAAAAABAEDBQIG/8QARRAAAQMAAg0JBgUDBAMBAAAAAAECAwQRBRITFCFRUlNykpOysxUxMzQ1QbHR0gYiYXFzgjKBkaGjI2PwQkPB4oPh8WL/xAAVAQEBAAAAAAAAAAAAAAAAAAAAAf/EABURAQEAAAAAAAAAAAAAAAAAAAAB/9oADAMBAAIRAxEAPwD7qnUtY5U91iqrWKqq2tVVW1rhJ7/XIi1BZPp26Ee4hIBXf65EWoL/AFyItQxPWtCjVUqwvSu1qr/D+pKB06RSbnBE9rI63Ncq+5/+3J4IT3+uRHqGaZ1SDQdxXkYFd/rkR6gv92RFqHqhq+OJZHW1z95LXnSR1XNV/wA93zIgOm6lqygNla2JFV0iL/TauBGsXv8Ampo5Rfii2MfkYl7Lj05d2MkAs5RfkxbGPyMcovyYtjH5Hqx6vtrn71qttUn+lVqw23wIgOm2mOWgOltYrZHxoi3JnMrXqvd8ENHKMmKLYx+RhnZT/qRbshIBZyjJii2MfkOUZMUWxj8j3Y1rbdMLbZbZKlRcCWvy/wDlRCvOB06NS1lo8rpGxKrWtVP6bEw27U7vmTX+uRFqHqg9Un0G8RhEBXf65EWoL/XIi1DzQ5bk5yojlrSqtuBW+8mGv9vzPNNYrKQqOVVX3VrXnwtRal+Pd+QFlCpN2mVr2R1Wsi/g70Y5fFCe/wBciPUFjOsLoTcJxIBXf7siLUF/rkR6higIlu5yoqqjVVqJVXXWnNX8K/0PNNbVIj1Vy2yIvvYVT4L/AJzKBXY+lXanMjeyOpzmovuY1NPKT8mHZMPNie04tNniSgWcpPyYdkwcpPyYdkwkY5WvRY66+6rGUU6RVckL1rVvOvP7y8+HF3fkBtisi50iNVkNSqn+0zGe6ZTnRUx8bGxVNc5E/ox8yOqxEMHTN+aeJssj2jLpv3lA2coyYotjH5DlGTFFsY/I00NLalsRERfebgXmXDzKb6atvA17VcqWz0978Xdgr70/5VQMcoyYotjH5Fdk6YtHp7oYmQ2qVVf0mL3IclC2znaknzTdQDHKT8iHZMHKT8iHZMJ6M9GUhr5ErRFStKq/2UopnV2K9Vc5VfhVKltfdq58NVdYDlJ+RDsmeRVSKbLBIiQOVqK2N1Se6laxtVakOQdCm9I3Qh4bSpWqyfTt0I9xCQrsn07dCPcQkIrKvVW1Kq1YqzAAFlM6pBoO4ryMspnVINB3FeRgemvc3A1VT8zyABXL2XHpy7sZIVy9lx6cu7GSAekeqMtUVal50rPIAFbOyn/Ui3ZCQrZ2U/6kW7ISAZMAAW0Hqk+g3iMIi2g9Un0G8RhEBlr1YtbFVF+C1BcOFTAArsZ1hdCbhOJCuxnWF0JuE4kAyiq1a284VVctbsKmABXYntOLTZ4kpVYntOLTZ4koDm5jAAGyDpm/NPE2WR7Rl037ymuDpm/NPE2WR7Rl037ygTmXPV61vVV+a1mABlC2znaknzTdQiQts52pJ803UAiTBhQOcr3WzlVVxrhMAAX03pG6EPDaQHQpvSN0IeG0JWqyfTt0I9xCQrsn07dCPcQkCgAAspnVINB3FeRllM6pBoO4ryMAAAK5ey49OXdjJCuXsuPTl3YyQAAAK2dlP+pFuyEhWzsp/wBSLdkJAAAAtoPVJ9BvEYRFtB6pPoN4jCIAAAK7GdYXQm4TiQrsZ1hdCbhOJAAAArsT2nFps8SUqsT2nFps8SUDAAA2QdM35p4myyPaMum/eU1wdM35p4myyPaMum/eUCcAAZQts52pJ803UIkLbOdqSfNN1AIQAAL6b0jdCHhtIDoU3pG6EPDaErVZPp26Ee4hIV2T6duhHuISBQAAWUzqkGg7ivIyymdUg0HcV5GAAAFcvZcenLuxkhXL2XHpy7sZIAAAFbOyn/Ui3ZCQrZ2U/wCpFuyEgAAAW0Hqk+g3iMIi2g9Un0G8RhEAAAFdjOsLoTcJxIV2M6wuhNwnEgAAAV2J7Ti02eJKVWJ7Ti02eJKBgAAbIOmb808TZZHtGXTfvKa4Omb808TZZHtGXTfvKBOAAMoW2c7Uk+abqESFtnO1JPmm6gEIAAF9N6RuhDw2kBfTekboQ8NoSk6wTuRz3vaqNaipc0XCiVc9ZruVHzr9inqJXfiX8zAVXcqPnX7FPULlR86/Yp6iQAdCZaPLEyO6SJaIqdEmGtznZXxNVyo+cfsU9RIAK7lR84/Yp6hcqPnH7FPUSADoOdR1orYLeTA5613JvejUyvh+5ptKNly7FvqJQBVaUbLl2LfULSjZcuxb6iUAdBr6OlFdBbS4XNWu5N7kclX4vj+xqtKNly7JvqJABXaUbLl2TfULSjZcuyb6iQAdGB9HiifGj5PfREruTcFTkdlfA03Kj51+x/7EgAruVHzr9j/2Fyo+dfsf+xIAOhRlo8Eivuj1ra9OiROdqtyviarlR84/Yp6iQAV3Kj5x+xT1C5UfOP2KeokAHQoi0ej0ps10kW1VFquSJXUteUa7lRs5LsW+ojAFlyo2cl2LfULlRs5LsW+ojAFrGUZj0ddJcCovQt9R6pC0aekOmt5UtlctVyatVa15RAAK7SjZcuyb6haUbLl2TfUSACu0o2XLsm+oopr6NS6U6e3kSurBckWrBVlHMAFlyo2ck2KeoXKjZyTYp6iMAWXKjZyTYp6jNKlbLLXDXaojERVSpVqYiV1ERti/CErW78S/mYMu/Ev5mAoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAG2L8JqNsX4SxK1u/Ev5mDY2B8qqsbXKla8zVXwPV6S5D9RxFaQbr0lyH6jhekuQ/UcBpBuvSXIfqOF6S5D9RwGkG69Jch+o4XpLkP1HAaQbXUaRqVuY9ETvtVNQAAAAAAAAAAAAAAAAAAAAAAAAAHuKN0r0jiRVVeZESs38m0jNyaigSgq5NpGbk1FHJtIzcmooEoKuTaRm5NRRybSM3JqKBKCrk2kZuTUUcm0jNyaigSm2L8Jt5NpGbk1FPNydC5Y5UVHJ3KlVWBFLErc97mWOZc1VP6k3Mqp/pYTXeSqu2fVpKVtkSKhxvdWqXSaurRYhrvvBc2W9zRrktcarWtaomDnw/kRU98SZT9ZRfEmU/WU1gDZfEmU/WUXxJlP1lNYA2XxJlP1lF8SZT9ZTWALrHyvfM5HucqXObBWq/7biErsb07vpzcJxIAAAAAAAAAKYaBNPHdIWOVuMmPrrA9lM+/fUD5akUd9GfaTtVq89Smo7PtP11ugm844wAAAAduxFgXUtqT0hbVi8yIqKrvIrsl7OumpFdCubWIiJUqr5AfMgsslY59jnoyZWrWlaVVr4kYAAAVWN6z9k3CcTFNjes/ZNwnEoGQYAGQYAGQYKYVY6FGWjnOrcuBasGCru+YE5fTunTQh4TCSkORz/cba1IiKldeFO8qp3TpoQ8JgSsK+5UKN6Ii1SSrUqVouCPnRTVfjlRWqjMKKmBjG8/xRKzZMldjWVZybdjI7VcShWAZtVxKLVcSgYBm1XEotVxKBgGbVcSi1XEoFVjend9ObhOJCyxqKk7vpzcJxGAAAAG2i0Z9LmSGBK3LXUlaJzJX3nqmUSShS3OkJUtVfOi4PyA0AAAfXWC7KZ928p8ifXWB7KZ928oHK9p+ut0E3nHGOx7T9cZoJvOOOAAAFFDp0tCfbUdypjTnRfmh1qNZR9PszE5a28yK1HLU5cK11f5zHBLrB9rR6X/AAB0vbDrUeivifPn0Hth1qPRXxPnwAAAqsb1n7JuE4lK7GIrqXU3CqtlqT/xONd5y5uTUd5AaAb7zlzcmo7yF5y5uTUd5AaAb7zlzcmo7yF5y5uTUd5AaCqGZtwuT3PbhVa2pbW2BOdK0xfueLzlzcmo7yF5y5uTUd5AKVKkqojVctSVVu51wqv/AKKKd06aEPCYT3nLm5NR3kU09FbSKnYFRkPdzf0mhK9x0iWGx7W0VzkV0kuBvf7rKuY8updNYy3c6ZExrbIa3uVtAjdHWipJNUqc6LVGeJJXSw2jUci4VdhwLgxdwV65UpOdk1lHKlJzsmspGALOVKTnZNZRypSc7JrKRgCzlSk52TWUcqUnOyaykYA6lCp8073RzSPc1WTVoq1/7blOWV2N6d305uE4kAAADqezfa7Pk/dU2+1faSaDfFTV7N9rs+T91Tb7V9pJoN8VA4wAAH11geymffvqfIn11geymffvqByfafrjNBN5xxzs+0/XW6CbzjjAAAAK7FzNo9kGTSrU1Fw95IAOv7R06OnTsfRlrREVFwKnf8TkAAAABXYxVbS7ZuBUbLUvxuTjXfs2ck13HuxvWfsm4TiUDffs2ck13C/Zs5JruNAA337NnJNdwv2bOSa7jQAN9+zZyTXcZv2bOSa7icoZOscCMtWqlblrVtfc3B+37gL9mzkmu4psgqupCOdWqqyGtcf9JpHSJVlcjnoiVIiYG2uDuKqd06aEPCYErDnrFQY5I1qVJJVRfjVGaFpkqtVrnvVFwKiuVUqNs3ZrPqTbsZGFAAAAAAAAV2N6d305uE4kK7G9Yd9ObhOJAAAA+j9maAx7kprH4W2yK215lVKuf8yj2jsa2RFpsr7VGtRKrWu2Wtau/wCJxrA0+8aclsvuOwO+GJf8xlHtNZC+aVe8a+4zn+LgOKAAB9dYHspn376nyJ9dYLsln3b6gcr2n663QTeccY7HtP1xmgm8444AAAAAAAAAAAVWN6z9k3CcSlVjes/ZNwnEtQAGQBgGQBg3R0l0cVzZVVWq4Wtdz1J3/I1AD3NM6ZUWRa1RKkwImD8iundOmhDwmEFR0Kd06aEPCYEr02kuo1jW3K1wyS11sa//AEsyjVynL/b2MXke2ORlEjdJzJJP3V4bVlVafM1tpSParJEYiK11dTG1udhqVFRMHdgTBgCs8py/29jF5DlOX+3sYvIiAFvKcv8Ab2MXkOU5f7exi8iIAW8py/29jF5DlOX+3sYvIiAHUodOkne6N9pUsc3NGxq9G5edErOWV2N6d305uE4kAAAAAAAAAH11guymfdvKfIn11geymffvqByvafrrdBN5xxjse0/XGaCbzjjgAAAAAAAAAABZYp6spluzAqNlVFxLc3Dlak5x/wCp5sb1n7JuE4lAs5WpOcf+o5WpOcf+pGALOVqTnH/qOVqTnH/qRgCzlak5x/6jlak5x/6kZvYkVxS6W1tWvMiLgqSrn/MDbytSc4/9TbZF6vpNu5VVVbEqrjW5NIp7StLhbVVYa6uf8iyndOmhDwmBKwrkZQY3PS2RJJa0wpWlUeI03yypUubErRURUt60/Vaj3N2az6k27GRhQAAAAAAAFdjend9ObhOJCuxvTu+nNwnEgAAAAAAAAA+usD2Uz7t5T5E+usD2Uz7t5QOV7T9dboJvOOMdn2n663QTeccYAAAAAAAAAAAKrG9Z+ybhOJSqxvWfsm4TiUAAAAAAFUUrL2SKVOdzlVUTC3A2pUXv78BKAN1ItERrIlrqRa1taq8NZTTunTQh4TCAvp3TpoQ8JgSjnuotdFnjjdaucuG2wLgRcLVTEh5vhMxD/J6gCqXwmYh/k9QvhuYh/k9QAC+EzEP8nqF8NzEP8nqAAXwmYh/k9QvhuYh/k9QABKXaotyiiaqo5K0t60RWqi864iS0XF4AEC0XF4C0XF4ABC0XF4C0XF4ABS0XF4C0XF4ABC0XF4HUoVl5KHRkhaxqoleFVXGq4zAAmsjS30+ZJJGolSVIiL3VrhwktouLwAClouLwFouLwAAWi4vAWi4vAAIWi4vAWi4vAABaLi8BaLi8AANlHe+CW6x1V1Lzoi4KlRcC/Cs3X4/Ih2MfkZBVYvx+RDsY/IX4/Ih2MfkZAGL8fkQ7GPyF+PyIdjH5GQBi/H5EOxj8hfj8iHYx+RkAYvx+RDsY/IphoVIsi1aQiN7k52t5kRKkRABEr//Z';
+ function pickPlan(){plan=null;if(sel<0)return;const o=G.opts[sel];plan=o?o[method]:null}
+ cv.onclick=function(e){if(state==='run')return;const r=cv.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*W_M,y=(e.clientY-r.top)/r.height*H_M;
+  for(let i=0;i<SLOTS.length;i++){const sl=SLOTS[i];if(x>=sl.x0&&x<=sl.x1&&y>=sl.y0&&y<=sl.y1){
+   if(G.occ[i]){say(sl.id+'番には車がいます');return}
+   const o=G.opts[i];if(!o||!(o.back||o.front)){say(sl.id+'番には入れません');return}
+   sel=i;state='pick';pose=null;s=0;pickPlan();
+   if(!plan){method=o.back?'back':'front';pickPlan();mark();say(sl.id+'番は、この向きでは入れないので、'+(method==='back'?'後ろから':'前から')+'にしました。スタートを押してください。')}
+   else say(sl.id+'番に駐車します。向きを選んで、スタートを押してください。');return}}};
+ OV.querySelector('#pkB').onclick=function(){if(state==='run')return;method='back';mark();pickPlan();if(sel>=0&&!plan)say(SLOTS[sel].id+'番は、後ろからでは入れません')};
+ OV.querySelector('#pkF').onclick=function(){if(state==='run')return;method='front';mark();pickPlan();if(sel>=0&&!plan)say(SLOTS[sel].id+'番は、前からでは入れません')};
  OV.querySelector('#pkGo').onclick=function(){if(state==='run')return;if(sel<0){say('駐車する場所をタッチしてください（青い枠です）');return}
-  pts=plan(SL[sel],method);s=0;pose=START;state='run';last=performance.now()};
- OV.querySelector('#pkRe').onclick=function(){scenario();say('駐車したい場所をタッチしてください。青い枠が、駐車できる場所です。')};
+  pickPlan();if(!plan){say('この向きでは入れません。もう一方の向きを選んでください');return}
+  s=0;tm=0;pose=START;state='run';setStage('A')};
+ OV.querySelector('#pkRe').onclick=function(){if(state==='run')return;G=makeScenario('perp');sel=-1;plan=null;pose=null;s=0;state='pick';say('駐車したい場所をタッチしてください。青い枠が、駐車できる場所です。')};
  OV.querySelector('#pkX').onclick=function(){cancelAnimationFrame(raf);OV.remove();OV=null};
  mark();say('駐車したい場所をタッチしてください。青い枠が、駐車できる場所です。');raf=requestAnimationFrame(loop);
 };
@@ -508,7 +672,7 @@ window.openLive=async function(la0,lo0,la1,lo1){
  if(!LV||LV.ov!==ov)return;
  var kx=111320*Math.cos(geo[0][1]*PI/180),kz=110540,P=geo.map(function(p){return{x:(p[0]-geo[0][0])*kx,z:-(p[1]-geo[0][1])*kz,lat:p[1],lon:p[0]}}),D=[0];
  for(var i=1;i<P.length;i++)D.push(D[i-1]+Math.hypot(P[i].x-P[i-1].x,P[i].z-P[i-1].z));
- var TOT=D[D.length-1]||1,VMAX=Math.min(55,Math.max(11,TOT/150));
+ var TOT=D[D.length-1]||1,VMAX=13.9;
  function at(sv){var a=0,b=P.length-1;while(b-a>1){var m=(a+b)>>1;if(D[m]<=sv)a=m;else b=m}var p=P[a],q=P[b],l=D[b]-D[a]||1,u=Math.min(1,Math.max(0,(sv-D[a])/l));return{x:p.x+(q.x-p.x)*u,z:p.z+(q.z-p.z)*u,lat:p.lat+(q.lat-p.lat)*u,lon:p.lon+(q.lon-p.lon)*u,dx:(q.x-p.x)/l,dz:(q.z-p.z)/l}}
  var map=L.map(ov.querySelector('#lvMap'),{zoomControl:false,attributionControl:false}).setView([la0,lo0],17);
  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
@@ -534,7 +698,7 @@ window.openLive=async function(la0,lo0,la1,lo1){
  LV={ov:ov,map:map,rd:rd,rs:rs,raf:0};
  var s=0,v=0,last=performance.now(),hd=null,mt=0,fin=false;
  function loop(t){if(!LV||LV.ov!==ov)return;var dt=Math.min(.1,(t-last)/1000);last=t;
-  if(!fin){var rem=TOT-s;v+=(Math.min(VMAX,Math.max(2.5,rem/3))-v)*Math.min(1,dt*1.5);s=Math.min(TOT,s+v*dt);
+  if(!fin){var rem=TOT-s;v+=(Math.min(VMAX,Math.max(2.5,rem/1.5))-v)*Math.min(1,dt*1.5);s=Math.min(TOT,s+v*dt);
    if(TOT-s<1.5){fin=true;v=0;T.textContent='到着しました'}else T.textContent='車が向かっています　残り約'+Math.round(TOT-s)+'m'}
   var q=at(s),ta=Math.atan2(q.dx,q.dz);if(hd===null)hd=ta;var df=Math.atan2(Math.sin(ta-hd),Math.cos(ta-hd));hd+=df*Math.min(1,dt*4);
   car.position.set(q.x,0,q.z);car.rotation.y=hd;gd.position.set(q.x,0,q.z);
